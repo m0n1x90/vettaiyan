@@ -1,0 +1,62 @@
+;
+; VettaiyanDriver.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = VettaiyanDriver.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+VettaiyanDriver.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%VettaiyanDriver.DeviceDesc% = VettaiyanDriver_Device, Root\VettaiyanDriver ; TODO: edit hw-id
+
+[VettaiyanDriver_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+VettaiyanDriver.sys
+
+;-------------- Service installation
+[VettaiyanDriver_Device.NT.Services]
+AddService = VettaiyanDriver,%SPSVCINST_ASSOCSERVICE%, VettaiyanDriver_Service_Inst
+
+; -------------- VettaiyanDriver driver install sections
+[VettaiyanDriver_Service_Inst]
+DisplayName    = %VettaiyanDriver.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\VettaiyanDriver.sys
+
+[VettaiyanDriver_Device.NT.Wdf]
+KmdfService = VettaiyanDriver, VettaiyanDriver_wdfsect
+
+[VettaiyanDriver_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "m0n1x90"
+DiskName = "VettaiyanDriver Installation Disk"
+VettaiyanDriver.DeviceDesc = "VettaiyanDriver Device"
+VettaiyanDriver.SVCDESC = "VettaiyanDriver Service"

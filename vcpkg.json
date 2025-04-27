@@ -1,0 +1,8 @@
+{
+  "name": "vettaiyan-edr",
+  "version": "0.1.0",
+  "dependencies": [
+    "yara"
+  ],
+  "builtin-baseline": "bc3512a509f9d29b37346a7e7e929f9a26e66c7e"
+}
