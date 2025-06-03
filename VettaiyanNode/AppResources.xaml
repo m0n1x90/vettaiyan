@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:VettaiyanNode">
+    
+    <x:String x:Key="AppTitleName">Vettaiyan EDR</x:String>
+
+    <!-- Colors -->
+    <SolidColorBrush x:Key="CardBackgroundBrush"   Color="#F5F7F8" />
+    <SolidColorBrush x:Key="MetadataDefaultBrush"  Color="Gray"/>
+    <SolidColorBrush x:Key="MetadataFetchingBrush" Color="#FFD19C10"/>
+    <SolidColorBrush x:Key="MetadataSuccessBrush"  Color="#FF107C10"/>
+    <SolidColorBrush x:Key="MetadataErrorBrush"    Color="#FFC50F1F"/>
+    
+</ResourceDictionary>

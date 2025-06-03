@@ -3,6 +3,7 @@
 #include "YaraScanner.h"
 #include "Support.h"
 #include "Utils.h"
+#include "DbUtil.h"
 
 SERVICE_STATUS        g_ServiceStatus = {};
 SERVICE_STATUS_HANDLE g_StatusHandle = nullptr;
@@ -10,15 +11,97 @@ HANDLE                g_ServiceStopEvent = INVALID_HANDLE_VALUE;
 HANDLE                g_CurrentPipe = INVALID_HANDLE_VALUE;
 HANDLE                g_WorkerThread = nullptr;
 
-DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
+std::queue<std::wstring> g_scanQueue;
+CRITICAL_SECTION g_queueLock;
+HANDLE g_queueEvent = NULL;
 
+void EnqueuePath(const std::wstring& path) {
+    EnterCriticalSection(&g_queueLock);
+    g_scanQueue.push(path);
+    LeaveCriticalSection(&g_queueLock);
+    SetEvent(g_queueEvent);
+}
+
+void EnqueueFilesInDirectory(const std::wstring& directory) {
+    std::wstring searchPath = directory + L"\\*";
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+
+    if (hFind == INVALID_HANDLE_VALUE) return;
+
+    do {
+        if (wcscmp(findData.cFileName, L".") == 0 || wcscmp(findData.cFileName, L"..") == 0)
+            continue;
+
+        std::wstring fullPath = directory + L"\\" + findData.cFileName;
+
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            EnqueueFilesInDirectory(fullPath);
+        }
+        else {
+            EnqueuePath(fullPath);
+        }
+
+    } while (FindNextFileW(hFind, &findData));
+
+    FindClose(hFind);
+}
+
+bool DequeuePath(std::wstring& pathOut) {
+    EnterCriticalSection(&g_queueLock);
+    if (g_scanQueue.empty()) {
+        LeaveCriticalSection(&g_queueLock);
+        return false;
+    }
+    pathOut = g_scanQueue.front();
+    g_scanQueue.pop();
+    LeaveCriticalSection(&g_queueLock);
+    return true;
+}
+
+
+DWORD WINAPI ScannerWorkerThread(LPVOID lpParam) {
+    while (WaitForSingleObject(g_ServiceStopEvent, 0) != WAIT_OBJECT_0) {
+        WaitForSingleObject(g_queueEvent, INFINITE);
+
+        std::wstring path;
+        while (DequeuePath(path)) {
+            YaraScanResult scanResult = ScanFileWithYara(path);
+
+            if (scanResult.matched) {
+                SaveScanResultToDB(scanResult);
+                std::vector<std::wstring> toastArgs = {
+                    L"detected",
+                    L"Threat Found",
+                    scanResult.reason,
+                };
+                LaunchNotification(toastArgs);
+            }
+            /*else {
+                std::vector<std::wstring> toastArgs = {
+                    L"No Threat Found",
+                    scanResult.reason,
+                };
+                LaunchNotification(toastArgs);
+            }*/
+        }
+    }
+    return 0;
+}
+
+DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     LaunchNotification(START_MSG);
     LogMessage(L"[+] Service Start Toasted");
 
     if (!InitializeYara()) {
-        LogMessage(L"[-] Failed to initialize YARA");
+        LogMessage(L"[-] Failed to initialize YARA from Service Worker");
         return ERROR_INTERNAL_ERROR;
     }
+
+    InitializeCriticalSection(&g_queueLock);
+    g_queueEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    CreateThread(NULL, 0, ScannerWorkerThread, NULL, 0, NULL);
+
     LogMessage(L"[+] YARA init passed");
     HANDLE pipe;
     wchar_t buffer[512];
@@ -40,7 +123,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
 
         pipe = CreateNamedPipe(
             SCANNER_PIPE_NAME,
-            PIPE_ACCESS_INBOUND,
+            PIPE_ACCESS_DUPLEX,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
             PIPE_UNLIMITED_INSTANCES,
             sizeof(buffer),
@@ -50,8 +133,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
         );
 
         if (pipe == INVALID_HANDLE_VALUE) {
-            DWORD error = GetLastError();
-            LogMessage(L"[-] Failed to create named pipe! Error: " + std::to_wstring(error));
+            LogMessage(L"[-] Failed to create named pipe!");
             Sleep(1000);
             continue;
         }
@@ -62,23 +144,16 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
             TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
 
         if (connected) {
-            LogMessage(L"[+] Client connected. Waiting for file path...");
-
             DWORD bytesRead;
             if (ReadFile(pipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
-                std::wstring fileToScan(buffer, bytesRead / sizeof(wchar_t));
+                std::wstring receivedPath(buffer, bytesRead / sizeof(wchar_t));
+                LogMessage(L"[+] Received: " + receivedPath);
 
-                YaraScanResult scanResult = ScanFileWithYara(fileToScan);
-                if (scanResult.matched) {
-                    std::vector<std::wstring> toastArgs = {
-                        L"Threat Found",
-                        scanResult.reason,
-                        L"image"
-                    };
-                    LaunchNotification(toastArgs);
+                if (PathIsDirectoryW(receivedPath.c_str())) {
+                    EnqueueFilesInDirectory(receivedPath);
                 }
                 else {
-                    std::wcout << L"No threats found for " << fileToScan << std::endl;
+                    EnqueuePath(receivedPath);
                 }
             }
         }
@@ -88,13 +163,13 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     }
 
     FinalizeYara();
-    LogMessage(L"[+] Cleaned YARA");
-
     LaunchNotification(STOP_MSG);
+    DeleteCriticalSection(&g_queueLock);
+    CloseHandle(g_queueEvent);
     LogMessage(L"[+] Service Stop Toasted");
-
     return ERROR_SUCCESS;
 }
+
 
 void WINAPI ServiceCtrlHandler(DWORD CtrlCode) {
     switch (CtrlCode) {

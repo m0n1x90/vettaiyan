@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="VettaiyanNode.Pages.Threats"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    xmlns:local="using:VettaiyanNode.Pages"
+    xmlns:model="using:VettaiyanNode.Model"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+>
+
+    <Page.Resources>
+        <DataTemplate x:Key="ExpanderHeaderTemplate" x:DataType="model:Threat">
+            <StackPanel Orientation="Vertical" Spacing="8" Margin="12">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xEBE8;" VerticalAlignment="Center"/>
+                    <TextBlock 
+                        VerticalAlignment="Center"
+                        Text="{x:Bind ThreatImageName}" 
+                        Style="{StaticResource BodyTextBlockStyle}"
+                    />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Detected At: " Style="{StaticResource CaptionTextBlockStyle}"/>
+                    <TextBlock Text="{x:Bind TimeDetected}" Style="{StaticResource CaptionTextBlockStyle}"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+
+    <ScrollViewer
+        x:Name="ThreatPageViewer"
+        VerticalScrollBarVisibility="Auto"
+    >
+        <StackPanel Spacing="6">
+
+            <!-- Page Header -->
+            <StackPanel
+                Padding="0,0,0,16"    
+            >
+                <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="12" 
+                    VerticalAlignment="Center"
+                    Padding="0,0,0,8"
+                >
+                    <FontIcon 
+                        Glyph="&#xE81B;" 
+                        VerticalAlignment="Center"
+                    />
+                    <TextBlock 
+                        Text="Threats"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        FontWeight="Normal"
+                        VerticalAlignment="Center"
+                    />
+                </StackPanel>
+                <TextBlock 
+                    Text="View this endpoint's threat history and its responses"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                />
+            </StackPanel>
+
+            <ItemsControl x:Name="ThreatsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="model:Threat">
+                        <controls:Expander
+                            HeaderTemplate="{StaticResource ExpanderHeaderTemplate}"
+                            Margin="0,12,0,0"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            Padding="12"
+                            CornerRadius="8"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                        >
+                            <StackPanel Spacing="36" Padding="6" Orientation="Horizontal" VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                    <FontIcon Glyph="&#xE730;"/>
+                                    <TextBlock Text="Detected Rule Name:"/>
+                                    <TextBlock Text="{x:Bind ThreatName}" Foreground="SlateGray"/>
+                                </StackPanel>
+                                <Button 
+                                    Content="View Details"
+                                    HorizontalAlignment="Left"
+                                    Click="ViewDetails_Click"
+                                    Tag="{x:Bind}" 
+                                />
+                            </StackPanel>
+                        </controls:Expander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel 
+                x:Name="NoThreatsBanner"
+                Orientation="Vertical"
+                HorizontalAlignment="Center"
+                Visibility="Collapsed"
+                Margin="10"
+                Spacing="10"
+            >
+                <Image 
+                    Source="/Assets/Images/Secure.png" 
+                    Width="64" 
+                    Height="64" 
+                    Stretch="Uniform"
+                />
+                <TextBlock 
+                    Text="✅ No threats detected."
+                    FontSize="16"
+                    Foreground="DarkGreen"
+                    HorizontalAlignment="Center"
+                />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="10"
+                        Margin="0,20,0,0">
+                <Button x:Name="PrevButton"
+                        Content="Previous"
+                        Click="PreviousPage_Click"/>
+                <TextBlock Text="{x:Bind CurrentPageDisplay, Mode=OneWay}"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="NextButton"
+                        Content="Next"
+                        Click="NextPage_Click"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

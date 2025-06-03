@@ -1,0 +1,38 @@
+<Window
+    x:Class="VettaiyanNode.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:VettaiyanNode"
+    mc:Ignorable="d"
+    Title="Vettaiyan EDR"
+>
+
+    <Border Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid>
+
+            <NavigationView 
+                x:Name="navMenu"
+                Width="Auto"
+                IsPaneOpen="True"
+                PaneDisplayMode="Left"
+                IsSettingsVisible="True"
+                SelectionChanged="navMenuSelectionChanged"
+                BackRequested="BackButton_Click"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+            >
+
+                <NavigationView.MenuItems>
+                    <NavigationViewItem Icon="Home" Content="Dashboard" Tag="dashboard" />
+                    <NavigationViewItem Icon="Flag" Content="Threats" Tag="threats" />
+                    <NavigationViewItem Icon="Find" Content="Scan" Tag="scan" />
+                </NavigationView.MenuItems>
+
+                <Frame x:Name="contentFrame" Margin="24"/>
+                
+            </NavigationView>
+        </Grid>
+    </Border>
+</Window>

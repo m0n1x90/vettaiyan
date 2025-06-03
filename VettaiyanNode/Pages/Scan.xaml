@@ -1,0 +1,178 @@
+<Page
+x:Class="VettaiyanNode.Pages.Scan"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:VettaiyanNode.Pages"
+    xmlns:model="using:VettaiyanNode.Model"
+>
+
+    <ScrollViewer>
+        <StackPanel Spacing="6">
+
+            <StackPanel
+                Padding="0,0,0,16"    
+            >
+                <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="12" 
+                    VerticalAlignment="Center"
+                    Padding="0,0,0,8"
+                >
+                    <FontIcon 
+                        Glyph="&#xE721;" 
+                        VerticalAlignment="Center"
+                    />
+                    <TextBlock 
+                        Text="Scan"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        FontWeight="Normal"
+                        VerticalAlignment="Center"
+                    />
+                </StackPanel>
+                <TextBlock 
+                    Text="Perform an on demand, full or custom scan with Vettaiyan"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                />
+            </StackPanel>
+
+            <Grid 
+                RowSpacing="16" 
+                ColumnSpacing="32"
+            >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="1.5*" />
+                </Grid.ColumnDefinitions>
+
+
+                <Border 
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    CornerRadius="8"
+                    Padding="0,0,0,20"
+                >
+                    <StackPanel Spacing="10" Orientation="Vertical">
+                        
+                        <TextBlock 
+                           Text="Scan Options"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                        />
+
+                        <RadioButtons
+                            x:Name="ScanOptions"
+                            SelectionChanged="ScanRadioButtonChecked"
+                            SelectedIndex="0"
+                        >
+                            <StackPanel>
+                                <TextBlock
+                                    Text="Quick Scan" 
+                                />
+                                <TextBlock
+                                  Text="Scans commonly infected areas" 
+                                  FontSize="12" 
+                                  Margin="0,8,0,0"
+                                />
+                            </StackPanel>
+
+                            <StackPanel>
+                                <TextBlock 
+                                    Text="Full Scan" 
+                                />
+                                <TextBlock 
+                                  Text="Scans the entire system including all files and locations" 
+                                  FontSize="12" 
+                                  Margin="0,8,0,0"
+                                />
+                            </StackPanel>
+
+                            <StackPanel>
+                                <TextBlock 
+                                    Text="Custom Scan" 
+                                />
+                                <TextBlock 
+                                  Text="Manually choose folders or files to scan" 
+                                  FontSize="12" 
+                                  Margin="0,8,0,0"
+                                />
+                            </StackPanel>
+                        </RadioButtons>
+
+                        <StackPanel 
+                            x:Name="ScanControls" 
+                            Orientation="Vertical" 
+                            Spacing="8"
+                            Margin="0,8,0,0"
+                        >
+                            <ToggleButton 
+                                x:Name="ScanButton" 
+                                Content="Scan Now" 
+                                Click="ScanButtonClick"
+                            />
+                            <ProgressBar 
+                                x:Name="ScanProgressBar" 
+                                Minimum="0"
+                                Maximum="100"
+                                Value="0"
+                                Visibility="Collapsed"
+                                Height="4"
+                            />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border 
+                     Grid.Row="0"
+                     Grid.Column="1"
+                     CornerRadius="8"
+                     Padding="0,0,0,20"
+                >
+                    <StackPanel
+                         Spacing="10"
+                         Orientation="Vertical"
+                    >
+                        <TextBlock 
+                             Text="Scan Statistics"
+                             FontSize="18"
+                             FontWeight="SemiBold"
+                             Padding="0,0,0,8"
+                        />
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="Last Scan :"/>
+                            <TextBlock x:Name="LastScanTimeText" Foreground="{StaticResource MetadataDefaultBrush}"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="Scan Type :"/>
+                            <TextBlock x:Name="LastScanTypeText" Foreground="{StaticResource MetadataDefaultBrush}"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="Time Elapsed :"/>
+                            <TextBlock x:Name="TimeElapsedText" Foreground="{StaticResource MetadataDefaultBrush}"/>
+                        </StackPanel>
+
+                        <!-- Need to implement async logic
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="Files Scanned :"/>
+                            <TextBlock x:Name="FilesScannedText" Foreground="{StaticResource MetadataDefaultBrush}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="Threats Found :"/>
+                            <TextBlock x:Name="ThreatsFoundText" Foreground="{StaticResource MetadataDefaultBrush}"/>
+                        </StackPanel>
+                        -->
+                    </StackPanel>
+                </Border>
+
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

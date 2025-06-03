@@ -9,12 +9,18 @@
 #pragma comment(lib, "libyara.lib")
 #pragma comment(lib, "Shlwapi.lib")
 
-const std::wstring YARA_RULES_PATH = L"Assets\\rules\\vettaiyan.rules";
+const std::wstring YARA_RULES_PATH = L"rules\\vettaiyan.rules";
 
 struct YaraScanResult {
     bool matched;
-    std::wstring reason;
+    std::wstring ruleName;
+    std::wstring fileName;
     std::wstring filePath;
+    std::wstring fileHash;
+    std::wstring fileType;
+    std::wstring scanType;
+    std::wstring actionTaken;
+    std::wstring reason;
 };
 
 int YaraScanCallback(

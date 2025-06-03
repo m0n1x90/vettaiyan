@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "VettaiyanNode (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "VettaiyanNode (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

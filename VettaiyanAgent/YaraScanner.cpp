@@ -23,6 +23,12 @@ int YaraScanCallback(
 		}
 
 		std::wstring fileName = PathFindFileNameW(result->filePath.c_str());
+        result->ruleName = ruleName;
+        result->fileName = fileName;
+        result->filePath = result->filePath.c_str();
+        result->fileHash = ComputeSHA256(result->filePath.c_str());
+        result->fileType = GetMimeType(result->filePath.c_str());
+        result->actionTaken = L"Detected";
 		result->reason = L"Detected in " + fileName + L"\nRule: " + ruleName ;
 	}
 
@@ -71,6 +77,12 @@ YaraScanResult ScanFileWithYara(const std::wstring& filePath) {
     LogMessage(L"Scan started for !" + filePath);
     yr_rules_scan_file(YARA_RULES, narrowFile.c_str(), 0, YaraScanCallback, &result, 0);
     LogMessage(L"Scan finished for !" + filePath);
+
+    // No need this on for now
+   /* if (!result.matched) {
+        std::wstring fileName = PathFindFileNameW(filePath.c_str());
+        result.reason = L"No threat found in " + fileName;
+    }*/
 
     return result;
 }
