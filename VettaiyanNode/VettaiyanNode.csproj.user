@@ -5,14 +5,14 @@
   </PropertyGroup>
   <PropertyGroup>
     <ActiveDebugProfile>VettaiyanNode (Package)</ActiveDebugProfile>
-    <Source>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</Source>
-    <SmallTileSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</SmallTileSource>
-    <MediumTileSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</MediumTileSource>
-    <WideTileSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</WideTileSource>
-    <LargeTileSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</LargeTileSource>
-    <AppIconSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</AppIconSource>
-    <SplashScreenSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</SplashScreenSource>
-    <PackageLogoSource>C:\Users\monis\source\repos\VettaiyanEDR\VettaiyanNode\Assets\VettaiyanLogo.png</PackageLogoSource>
+    <Source>Assets\VettaiyanLogo.png</Source>
+    <SmallTileSource>Assets\VettaiyanLogo.png</SmallTileSource>
+    <MediumTileSource>Assets\VettaiyanLogo.png</MediumTileSource>
+    <WideTileSource>Assets\VettaiyanLogo.png</WideTileSource>
+    <LargeTileSource>Assets\VettaiyanLogo.png</LargeTileSource>
+    <AppIconSource>Assets\VettaiyanLogo.png</AppIconSource>
+    <SplashScreenSource>Assets\VettaiyanLogo.png</SplashScreenSource>
+    <PackageLogoSource>Assets\VettaiyanLogo.png</PackageLogoSource>
   </PropertyGroup>
   <ItemGroup>
     <None Update="App.xaml">

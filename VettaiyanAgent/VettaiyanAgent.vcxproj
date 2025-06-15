@@ -113,15 +113,23 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>
-        C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
-        C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib\libcrypto.lib;C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib\libssl.lib;C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib\libyara.lib;C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib\sqlite3.lib;C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib\magic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libcrypto.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libssl.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libyara.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\sqlite3.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\magic.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>
-        C:\Users\monis\source\repos\VettaiyanEDR\vcpkg_installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+        $(SolutionDir)vcpkg_installed\x64-windows\lib;%(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -132,12 +140,26 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>
+        $(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>
+        $(SolutionDir)vcpkg_installed\x64-windows\lib;%(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libcrypto.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libssl.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\libyara.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\sqlite3.lib;
+        $(SolutionDir)vcpkg_installed\x64-windows\lib\magic.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -158,17 +180,17 @@
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="assets\VettaiyanLogo.ico">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">
         $(OutDir)/Assets/icons</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="assets\VettaiyanLogo.png">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">
         $(OutDir)/Assets/icons</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
