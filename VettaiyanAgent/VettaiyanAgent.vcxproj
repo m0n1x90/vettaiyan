@@ -172,12 +172,6 @@
         $(OutDir)/Assets/icons</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
-<<<<<<< HEAD
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
-</Project>
-=======
   <Target Name="CopyRulesFolder" AfterTargets="Build">
     <ItemGroup>
       <RulesToCopy Include="$(SolutionDir)rules\**\*" />
@@ -191,5 +185,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>
->>>>>>> df03fea (Pushing M4)
