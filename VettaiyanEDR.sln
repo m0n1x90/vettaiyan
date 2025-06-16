@@ -8,6 +8,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VettaiyanAgent", "VettaiyanAgent\VettaiyanAgent.vcxproj", "{D9948F02-517D-4592-8227-97723237DF25}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VettaiyanNode", "VettaiyanNode\VettaiyanNode.csproj", "{1C35E9F4-E323-4CB3-B09E-71A26B5ACE2C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AD8213B9-D164-5083-68F4-067835784E82} = {AD8213B9-D164-5083-68F4-067835784E82}
+		{D9948F02-517D-4592-8227-97723237DF25} = {D9948F02-517D-4592-8227-97723237DF25}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
