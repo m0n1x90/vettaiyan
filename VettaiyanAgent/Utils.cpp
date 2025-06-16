@@ -1,23 +1,37 @@
 #include "Utils.h"
 
+std::wstring GetAssetPath(const std::wstring& assetName) {
+
+    std::wstring cwd = GetExecutableDir();
+    return cwd + L"\\" + assetName;
+
+}
+
 std::wstring GetExecutableDir() {
 
     wchar_t path[MAX_PATH];
     DWORD length = GetModuleFileNameW(nullptr, path, MAX_PATH);
+
     if (length == 0 || length == MAX_PATH) {
         std::wcerr << L"[-] GetModuleFileNameW() error" << std::endl;
         return L"";
     }
+
     std::wstring fullPath(path);
     size_t pos = fullPath.find_last_of(L"\\/");
     return (pos != std::wstring::npos) ? fullPath.substr(0, pos) : L"";
 
 }
 
-std::wstring GetAssetPath(const std::wstring& assetName) {
+std::wstring Utf8ToWide(const char* utf8Str) {
 
-    std::wstring cwd = GetExecutableDir();
-    return cwd + L"\\" + assetName;
+    if (!utf8Str) return L"";
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, nullptr, 0);
+    std::wstring result(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, &result[0], size_needed);
+    result.pop_back();
+    return result;
 
 }
 
@@ -37,6 +51,28 @@ void LoadPathIntoBuffer(std::wstring assetName, wchar_t* buffer, size_t bufferSi
     else {
         std::wcerr << L"Failed to retrieve scanner path!" << std::endl;
     }
+
+}
+
+std::wstring UrlEncode(const std::wstring& value) {
+
+    std::wostringstream escaped;
+    escaped.fill(L'0');
+    escaped << std::hex;
+
+    for (wchar_t c : value)
+    {
+        if (iswalnum(c) || c == L'-' || c == L'_' || c == L'.' || c == L'~')
+        {
+            escaped << c;
+        }
+        else
+        {
+            escaped << L'%' << std::uppercase << std::setw(2) << int((unsigned char)c);
+        }
+    }
+
+    return escaped.str();
 
 }
 

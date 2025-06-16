@@ -1,4 +1,5 @@
 #include "Agent.h"
+#include "Log.h"
 #include "Notification.h"
 #include "YaraScanner.h"
 #include "Support.h"

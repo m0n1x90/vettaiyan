@@ -1,27 +1,12 @@
+#include "Log.h"
 #include "Utils.h"
 #include "Support.h"
-
-void LogMessage(const std::wstring& message) {
-
-    std::wstring logFilePath = GetExecutableDir() + LOG_FILE;
-    std::wofstream logFile(logFilePath, std::ios_base::app);
-
-    if (logFile.is_open()) {
-        std::time_t now = std::time(nullptr);
-        std::tm localTime;
-        localtime_s(&localTime, &now);
-        logFile << std::put_time(&localTime, L"%Y-%m-%d %H:%M:%S") << L" - " << message << std::endl;
-        logFile.close();
-    }
-
-}
 
 void AddContextMenuEntry() {
 
     HKEY hKey;
     std::wstring keyPath = YARA_REGISTRY_CONTEXT;
     std::wstring commandPath = keyPath + L"\\command";
-
 
     if (RegCreateKeyW(HKEY_LOCAL_MACHINE, keyPath.c_str(), &hKey) == ERROR_SUCCESS) {
         std::wstring menuText = L"Scan with Vettaiyan (YARA)";
