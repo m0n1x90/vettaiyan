@@ -1,0 +1,97 @@
+name: Build Vettaiyan EDR
+  
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build Projects
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: List files and folders (PreBuild)
+      run: |
+        Write-Host "📁 Workspace structure:"
+        Get-ChildItem -Recurse -Force
+
+    - name: Clone and bootstrap vcpkg
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+
+    - name: Install vcpkg dependencies
+      run: |
+        .\vcpkg\vcpkg install --triplet x64-windows
+
+    - name: List vcpkg installed libs
+      run: vcpkg list
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Enable long path support
+      run: |
+        reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+
+    - name: Restore NuGet packages For Solution
+      run: msbuild VettaiyanEDR.sln /t:Restore
+
+    - name: Restore NuGet Packages For Driver
+      run: nuget restore VettaiyanDriver\VettaiyanDriver.vcxproj -SolutionDirectory .
+      working-directory: ${{ github.workspace }}
+
+    # Build WinUI 3 App - VettaiyanNode
+    - name: Build VettaiyanNode (WinUI3 App)
+      run: msbuild VettaiyanNode\VettaiyanNode.csproj /p:Configuration=Release /p:Platform=x64 /p:PublishReadyToRun=false
+
+    # Build C++ Service - VettaiyanAgent
+    - name: Build VettaiyanAgent (C++ Agent)
+      run: msbuild VettaiyanAgent\VettaiyanAgent.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=${{ github.workspace }}\
+
+    # Build Kernel Driver - VettaiyanDriver
+    - name: Build VettaiyanDriver (KMDF Driver)
+      run: msbuild VettaiyanDriver\VettaiyanDriver.vcxproj /p:Configuration=Release /p:Platform=x64
+
+    - name: List files and folders (PostBuild)
+      run: |
+        Write-Host "📁 Workspace structure:"
+        $base = Get-Item .
+        Get-ChildItem -Recurse -Force |
+        Where-Object { ($_.FullName.Split([IO.Path]::DirectorySeparatorChar).Count - $base.FullName.Split([IO.Path]::DirectorySeparatorChar).Count) -le 3 }
+
+    - name: List files and folders (vcpkg DEBUG)
+      run: |
+        Write-Host "📁 vcpkg structure:"
+        Get-ChildItem "vcpkg_installed\x64-windows" -Recurse -Force
+
+    - name: Create staging directory and copy build outputs
+      run: |
+        mkdir VettaiyanOutput
+
+        # Copy required DLLs
+        Copy-Item -Path "vcpkg_installed\x64-windows\bin\tre.dll" -Destination "VettaiyanOutput" -Force
+        Copy-Item -Path "vcpkg_installed\x64-windows\bin\magic-1.dll" -Destination "VettaiyanOutput" -Force
+        Copy-Item -Path "vcpkg_installed\x64-windows\bin\sqlite3.dll" -Destination "VettaiyanOutput" -Force
+        Copy-Item -Path "vcpkg_installed\x64-windows\tools\libmagic\share\misc\magic.mgc" -Destination "VettaiyanOutput" -Force
+
+        # Copy WinUI3 App output
+        Copy-Item -Path "VettaiyanNode\x64\Release\*" -Destination "VettaiyanOutput" -Recurse -Force
+
+        # Copy Driver output
+        Copy-Item -Path "VettaiyanDriver\x64\Release\VettaiyanDriver\*.*" -Destination "VettaiyanOutput" -Force
+
+        # Copy Agent output
+        Copy-Item -Path "x64\Release\*" -Destination "VettaiyanOutput" -Recurse -Force
+
+    - name: Upload Vettaiyan Artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: VettaiyanEDR
+        path: VettaiyanOutput\*
