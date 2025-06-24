@@ -17,7 +17,7 @@ jobs:
 
     - name: List files and folders (PreBuild)
       run: |
-        Write-Host "📁 Workspace structure:"
+        Write-Host "📁 Workspace structure (PreBuild):"
         Get-ChildItem -Recurse -Force
 
     - name: Clone and bootstrap vcpkg
@@ -60,7 +60,7 @@ jobs:
 
     - name: List files and folders (PostBuild)
       run: |
-        Write-Host "📁 Workspace structure:"
+        Write-Host "📁 Workspace structure (PostBuild):"
         $base = Get-Item .
         Get-ChildItem -Recurse -Force |
         Where-Object { ($_.FullName.Split([IO.Path]::DirectorySeparatorChar).Count - $base.FullName.Split([IO.Path]::DirectorySeparatorChar).Count) -le 3 }
