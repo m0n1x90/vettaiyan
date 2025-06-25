@@ -3,16 +3,13 @@
 
 #include <string>
 #include <vector>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 
 #include <windows.h>
-#include <Wtsapi32.h>
 #include <Userenv.h>
+#include <Wtsapi32.h>
 
-#pragma comment(lib, "Wtsapi32.lib")
 #pragma comment(lib, "Userenv.lib")
+#pragma comment(lib, "Wtsapi32.lib")
 
 const std::vector<std::wstring> START_MSG = {
     L"default",
@@ -25,9 +22,6 @@ const std::vector<std::wstring> STOP_MSG = {
     L"Agent Stopped",
     L"Vettaiyan agent has been stopped",
 };
-
-
-std::wstring UrlEncode(const std::wstring& value);
 
 void LaunchNotification(const std::vector<std::wstring>& args);
 

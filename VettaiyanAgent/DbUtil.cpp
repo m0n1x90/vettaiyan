@@ -1,21 +1,13 @@
+#include "Log.h"
 #include "DbUtil.h"
-#include "Support.h"
 #include "YaraScanner.h"
-#include <windows.h>
 
 std::wstring scanDbPath = GetAssetPath(L"data.db");
+
 std::string dbPathUtf8(scanDbPath.begin(), scanDbPath.end());
 
-std::wstring Utf8ToWide(const char* utf8Str) {
-    if (!utf8Str) return L"";
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, nullptr, 0);
-    std::wstring result(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, &result[0], size_needed);
-    result.pop_back();
-    return result;
-}
-
 void SaveScanResultToDB(const YaraScanResult& result) {
+
     sqlite3* db;
     if (sqlite3_open(dbPathUtf8.c_str(), &db) != SQLITE_OK) {
         LogMessage(L"[DB] Failed to open database: " + Utf8ToWide(sqlite3_errmsg(db)));
@@ -60,4 +52,5 @@ void SaveScanResultToDB(const YaraScanResult& result) {
 
     sqlite3_finalize(stmt);
     sqlite3_close(db);
+
 }

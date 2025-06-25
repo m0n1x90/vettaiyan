@@ -2,14 +2,9 @@
 #define SUPPORT_H
 
 #include <string>
-#include <fstream>
-#include <ctime>
-#include <iomanip>
 #include <shlwapi.h>
 
 #pragma comment(lib, "Shlwapi.lib")
-
-#define LOG_FILE L"\\VettaiyanLogFile.log"
 
 #define YARA_REGISTRY_CONTEXT L"Software\\Classes\\*\\shell\\ScanWithVettaiyan";
 
@@ -18,7 +13,5 @@
 void AddContextMenuEntry();
 
 void RemoveContextMenuEntry();
-
-void LogMessage(const std::wstring& message);
 
 #endif

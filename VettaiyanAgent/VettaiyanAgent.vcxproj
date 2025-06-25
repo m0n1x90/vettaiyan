@@ -58,24 +58,16 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -165,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="Agent.h" />
     <ClInclude Include="DbUtil.h" />
+    <ClInclude Include="Log.h" />
     <ClInclude Include="Notification.h" />
     <ClInclude Include="Support.h" />
     <ClInclude Include="Utils.h" />
@@ -173,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="Agent.cpp" />
     <ClCompile Include="DbUtil.cpp" />
+    <ClCompile Include="Log.cpp" />
     <ClCompile Include="Notification.cpp" />
     <ClCompile Include="Support.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -198,10 +192,7 @@
     <ItemGroup>
       <RulesToCopy Include="$(SolutionDir)rules\**\*" />
     </ItemGroup>
-    <Copy
-      SourceFiles="@(RulesToCopy)"
-      DestinationFiles="@(RulesToCopy->'$(OutDir)rules\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RulesToCopy)" DestinationFiles="@(RulesToCopy->'$(OutDir)rules\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
     <None Include="packages.config" />

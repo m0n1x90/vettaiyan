@@ -1,6 +1,7 @@
-#include "YaraScanner.h"
-#include "Support.h"
+#include "Log.h"
 #include "Utils.h"
+#include "Support.h"
+#include "YaraScanner.h"
 
 static YR_RULES* YARA_RULES = nullptr;
 
@@ -37,52 +38,52 @@ int YaraScanCallback(
 }
 
 bool InitializeYara() {
+
     if (yr_initialize() != ERROR_SUCCESS) {
-        LogMessage(L"[-] Failed to initialize YARA");
+        LogMessage(L"[ VettaiyanAgent ] Failed to initialize YARA");
         return false;
     }
 
     std::wstring compiledRulesPath = GetAssetPath(YARA_RULES_PATH);
     std::string narrowPath(compiledRulesPath.begin(), compiledRulesPath.end());
-    LogMessage(L"[+] Attempting to load YARA rules from: " + compiledRulesPath);
+    LogMessage(L"[ VettaiyanAgent ] Attempting to load YARA rules from: " + compiledRulesPath);
 
     int result = yr_rules_load(narrowPath.c_str(), &YARA_RULES);
     if (result != ERROR_SUCCESS) {
         yr_finalize();
-        LogMessage(L"[-] yr_rules_load failed with error code: " + std::to_wstring(result));
+        LogMessage(L"[ VettaiyanAgent ] yr_rules_load failed with error code: " + std::to_wstring(result));
         return false;
     }
 
     return true;
+
 }
 
 void FinalizeYara() {
+
     if (YARA_RULES) {
-        LogMessage(L"[+] YARA rules destroyed!");
+        LogMessage(L"[ VettaiyanAgent ] YARA rules destroyed!");
         yr_rules_destroy(YARA_RULES);
         YARA_RULES = nullptr;
     }
 
-    LogMessage(L"[+] yr_finalize completed");
+    LogMessage(L"[ VettaiyanAgent ] yr_finalize completed");
     yr_finalize();
+
 }
 
 YaraScanResult ScanFileWithYara(const std::wstring& filePath) {
+
     YaraScanResult result{ false, L"" };
     result.filePath = filePath;
 
     if (!YARA_RULES) return result;
 
     std::string narrowFile(filePath.begin(), filePath.end());
-    LogMessage(L"Scan started for !" + filePath);
+    LogMessage(L"Scan started for : " + filePath);
     yr_rules_scan_file(YARA_RULES, narrowFile.c_str(), 0, YaraScanCallback, &result, 0);
-    LogMessage(L"Scan finished for !" + filePath);
-
-    // No need this on for now
-   /* if (!result.matched) {
-        std::wstring fileName = PathFindFileNameW(filePath.c_str());
-        result.reason = L"No threat found in " + fileName;
-    }*/
+    LogMessage(L"Scan finished for : " + filePath);
 
     return result;
+
 }

@@ -3,3 +3,6 @@
 packages
 vcpkg_installed
 x64
+VettaiyanDriver/x64
+VettaiyanAgent/x64
+VettaiyanNode/obj/

@@ -1,4 +1,5 @@
 #include "Agent.h"
+#include "Log.h"
 #include "Notification.h"
 #include "YaraScanner.h"
 #include "Support.h"
@@ -91,10 +92,10 @@ DWORD WINAPI ScannerWorkerThread(LPVOID lpParam) {
 
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     LaunchNotification(START_MSG);
-    LogMessage(L"[+] Service Start Toasted");
+    LogMessage(L"[ VettaiyanAgent ] Service Start Toasted");
 
     if (!InitializeYara()) {
-        LogMessage(L"[-] Failed to initialize YARA from Service Worker");
+        LogMessage(L"[ VettaiyanAgent ] Failed to initialize YARA from Service Worker");
         return ERROR_INTERNAL_ERROR;
     }
 
@@ -102,7 +103,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     g_queueEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
     CreateThread(NULL, 0, ScannerWorkerThread, NULL, 0, NULL);
 
-    LogMessage(L"[+] YARA init passed");
+    LogMessage(L"[ VettaiyanAgent ] YARA init passed");
     HANDLE pipe;
     wchar_t buffer[512];
 
@@ -111,7 +112,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
 
     LPCWSTR sddl = L"D:(A;OICI;GRGW;;;WD)";
     if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, SDDL_REVISION_1, &pSD, NULL)) {
-        LogMessage(L"[-] Failed to convert SDDL string to security descriptor");
+        LogMessage(L"[ VettaiyanAgent ] Failed to convert SDDL string to security descriptor");
         return ERROR_ACCESS_DENIED;
     }
 
@@ -133,7 +134,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
         );
 
         if (pipe == INVALID_HANDLE_VALUE) {
-            LogMessage(L"[-] Failed to create named pipe!");
+            LogMessage(L"[ VettaiyanAgent ] Failed to create named pipe!");
             Sleep(1000);
             continue;
         }
@@ -147,7 +148,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
             DWORD bytesRead;
             if (ReadFile(pipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
                 std::wstring receivedPath(buffer, bytesRead / sizeof(wchar_t));
-                LogMessage(L"[+] Received: " + receivedPath);
+                LogMessage(L"[ VettaiyanAgent ] Received: " + receivedPath);
 
                 if (PathIsDirectoryW(receivedPath.c_str())) {
                     EnqueueFilesInDirectory(receivedPath);
@@ -166,7 +167,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     LaunchNotification(STOP_MSG);
     DeleteCriticalSection(&g_queueLock);
     CloseHandle(g_queueEvent);
-    LogMessage(L"[+] Service Stop Toasted");
+    LogMessage(L"[ VettaiyanAgent ] Service Stop Toasted");
     return ERROR_SUCCESS;
 }
 

@@ -1,27 +1,9 @@
+#include "Log.h"
+#include "Utils.h"
 #include "Notification.h"
-#include "Support.h"
-
-std::wstring UrlEncode(const std::wstring& value){
-    std::wostringstream escaped;
-    escaped.fill(L'0');
-    escaped << std::hex;
-
-    for (wchar_t c : value)
-    {
-        if (iswalnum(c) || c == L'-' || c == L'_' || c == L'.' || c == L'~')
-        {
-            escaped << c;
-        }
-        else
-        {
-            escaped << L'%' << std::uppercase << std::setw(2) << int((unsigned char)c);
-        }
-    }
-
-    return escaped.str();
-}
 
 void LaunchNotification(const std::vector<std::wstring>& toastData) {
+
     if (toastData.size() < 3) return;
 
     std::wstring typeEncoded = UrlEncode(toastData[0]);
@@ -84,6 +66,7 @@ void LaunchNotification(const std::vector<std::wstring>& toastData) {
     if (env) DestroyEnvironmentBlock(env);
     CloseHandle(duplicatedToken);
     CloseHandle(userToken);
+
 }
 
 
