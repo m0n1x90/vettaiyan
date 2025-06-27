@@ -8,14 +8,14 @@ VOID EdrCreateThreadNotifyRoutine(
     
     if (Create) {
         DbgPrint(
-            "[+] Thread Created: ID = %d, ProcessID = %d\n",
+            "[ VettaiyanDriver ] Thread Created: ID = %d, ProcessID = %d\n",
             ThreadId,
             ProcessId
         );
     }
     else {
         DbgPrint(
-            "[+] Thread Terminated: ID = %d, ProcessID = %d\n",
+            "[ VettaiyanDriver ] Thread Terminated: ID = %d, ProcessID = %d\n",
             ThreadId,
             ProcessId
         );

@@ -20,34 +20,34 @@ NTSTATUS EdrRegistryNotifyCallback(
         
         switch (notifyClass) {
             case RegNtDeleteValueKey:
-                DbgPrint("[+] Registry operation: Delete Value Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Delete Value Key\n");
                 break;
             case RegNtDeleteKey:
-                DbgPrint("[+] Registry operation: Delete Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Delete Key\n");
                 break;
             case RegNtSetValueKey:
-                DbgPrint("[+] Registry operation: Set Value Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Set Value Key\n");
                 break;
             case RegNtSetInformationKey:
-                DbgPrint("[+] Registry operation: Set Information Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Set Information Key\n");
                 break;
             case RegNtQueryKey:
-                DbgPrint("[+] Registry operation: Query Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Query Key\n");
                 break;
             case RegNtQueryValueKey:
-                DbgPrint("[+] Registry operation: Query Value Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Query Value Key\n");
                 break;
             case RegNtEnumerateKey:
-                DbgPrint("[+] Registry operation: Enumerate Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Enumerate Key\n");
                 break;
             case RegNtEnumerateValueKey:
-                DbgPrint("[+] Registry operation: Enumerate Value Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Enumerate Value Key\n");
                 break;
             case RegNtRenameKey:
-                DbgPrint("[+] Registry operation: Rename Key\n");
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Rename Key\n");
                 break;
             default:
-                DbgPrint("[+] Registry operation: Unknown operation type: %d\n", notifyClass);
+                DbgPrint("[ VettaiyanDriver ] Registry operation: Unknown operation type: %d\n", notifyClass);
                 break;
         };
 
@@ -63,7 +63,7 @@ NTSTATUS EdrRegistryNotifyCallback(
             return STATUS_SUCCESS;
         }
         else {
-            DbgPrint("[+] Registry Path: %wZ\n", RegistryPath);
+            DbgPrint("[ VettaiyanDriver ] Registry Path: %wZ\n", RegistryPath);
             return STATUS_SUCCESS;
         }
     }

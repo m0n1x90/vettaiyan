@@ -14,29 +14,29 @@ OB_PREOP_CALLBACK_STATUS PreOperationCallback(
     UNREFERENCED_PARAMETER(RegContext);
     
     if (OpInfo == NULL) {
-        DbgPrint("[+] PreOperationCallback: OpInfo is NULL\n");
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: OpInfo is NULL\n");
         return OB_PREOP_SUCCESS;
     }
 
     switch (OpInfo->Operation) {
     case OB_OPERATION_HANDLE_CREATE:
-        DbgPrint("[+] PreOperationCallback: Handle Create operation\n");
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: Handle Create operation\n");
         break;
     case OB_OPERATION_HANDLE_DUPLICATE:
-        DbgPrint("[+] PreOperationCallback: Handle Duplicate operation\n");
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: Handle Duplicate operation\n");
         break;
     default:
-        DbgPrint("[+] PreOperationCallback: Unknown operation type: %d\n", OpInfo->Operation);
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: Unknown operation type: %d\n", OpInfo->Operation);
         break;
     }
 
     if (OpInfo->Object) {
         PEPROCESS targetProcess = (PEPROCESS)OpInfo->Object;
         HANDLE targetProcessId = PsGetProcessId(targetProcess);
-        DbgPrint("[+] PreOperationCallback: Target Process ID: %d\n", targetProcessId);
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: Target Process ID: %d\n", targetProcessId);
     }
     else {
-        DbgPrint("[+] PreOperationCallback: Object is NULL\n");
+        DbgPrint("[ VettaiyanDriver ] PreOperationCallback: Object is NULL\n");
     }
 
     return OB_PREOP_SUCCESS;
@@ -67,7 +67,7 @@ VOID UnregisterObjectCallbacks() {
     if (OBJECT_CALLBACK_HANDLE) {
         ObUnRegisterCallbacks(OBJECT_CALLBACK_HANDLE);
         OBJECT_CALLBACK_HANDLE = NULL;
-        DbgPrint("[+] Object callback unregister succeeded\n");
+        DbgPrint("[ VettaiyanDriver ] Object callback unregister succeeded\n");
     }
 
 }

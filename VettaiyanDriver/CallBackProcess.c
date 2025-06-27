@@ -18,7 +18,7 @@ VOID EdrCreateProcessNotifyRoutine(
         SeLocateProcessImageName(process, &processName);
 
         DbgPrint(
-            "[+] Process spawned : PPID = %d, Parent Process Name = %wZ\n\t\tChild Process : PIDD = %d, Process Name = %wZ",
+            "[ VettaiyanDriver ] Process spawned : PPID = %d, Parent Process Name = %wZ\n\t\tChild Process : PIDD = %d, Process Name = %wZ",
             ParentProcessId,
             parentProcessName,
             ProcessId,
@@ -29,7 +29,7 @@ VOID EdrCreateProcessNotifyRoutine(
     else {
 
         DbgPrint(
-            "[+] Process Deleted: PPID = %d, PID = %d\n",
+            "[ VettaiyanDriver ] Process Deleted: PPID = %d, PID = %d\n",
             ParentProcessId,
             ProcessId
         );

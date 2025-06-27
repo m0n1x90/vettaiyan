@@ -13,32 +13,25 @@ VOID DriverUnload(
 
     NTSTATUS status;
 
-    //status = UnregisterImageNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to unregister EdrLoadImageNotifyRoutine : %08X\n", status);
-    //}
-    //status = UnregisterProcessNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to unregister EdrCreateProcessNotifyRoutine : %08X\n", status);
-    //}
-    //status = UnregisterThreadNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to unregister EdrCreateThreadNotifyRoutine : %08X\n", status);
-    //}
-    status = UnregisterRegistryCallbacks();
+    status = UnregisterImageNotifyRoutine();
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[-] Failed to unregister EdrCreateThreadNotifyRoutine : %08X\n", status);
+       DbgPrint("[ VettaiyanDriver ] Failed to unregister EdrLoadImageNotifyRoutine : %08X\n", status);
     }
-
-    UnregisterObjectCallbacks();
-
+    status = UnregisterProcessNotifyRoutine();
+    if (!NT_SUCCESS(status)) {
+       DbgPrint("[ VettaiyanDriver ] Failed to unregister EdrCreateProcessNotifyRoutine : %08X\n", status);
+    }
+    status = UnregisterThreadNotifyRoutine();
+    if (!NT_SUCCESS(status)) {
+       DbgPrint("[ VettaiyanDriver ] Failed to unregister EdrCreateThreadNotifyRoutine : %08X\n", status);
+    }
 
     UNICODE_STRING symbolicLinkName;
     RtlInitUnicodeString(&symbolicLinkName, EDR_SYMLINK_NAME);
     IoDeleteSymbolicLink(&symbolicLinkName);
     IoDeleteDevice(DriverObject->DeviceObject);
 
-    DbgPrint("[+] Driver Unloaded\n");
+    DbgPrint("[ VettaiyanDriver ] Driver Unloaded\n");
 
 }
 
@@ -68,7 +61,7 @@ NTSTATUS DriverEntry(
         &deviceObject
     );
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[-] Failed to create device: 0x%X\n", status);
+        DbgPrint("[ VettaiyanDriver ] Failed to create device: 0x%X\n", status);
         return status;
     }
 
@@ -76,58 +69,42 @@ NTSTATUS DriverEntry(
     RtlInitUnicodeString(&symbolicLinkName, EDR_SYMLINK_NAME);
     status = IoCreateSymbolicLink(&symbolicLinkName, &deviceName);
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[-] Failed to create symbolic link: 0x%X\n", status);
+        DbgPrint("[ VettaiyanDriver ] Failed to create symbolic link: 0x%X\n", status);
         IoDeleteDevice(deviceObject);
         return status;
     }
 
     // Initialise Driver Major Functions
-    DbgPrint("[+] Loading Driver\n");
+    DbgPrint("[ VettaiyanDriver ] Loading Driver\n");
     DriverObject->DriverUnload = DriverUnload;
     DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateClose;
     DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateClose;
 
-    // Register Image Notification Routine
-    //status = RegisterImageNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to register EdrLoadImageNotifyRoutine : %08X\n", status);
-    //    return status;
-    //}
-    //DbgPrint("[+] Loaded Image Notify Routine\n");
-
-    //// Register Process Notification Routine
-    //status = RegisterProcessNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to register EdrCreateProcessNotifyRoutine : %08X\n", status);
-    //    return status;
-    //}
-    //DbgPrint("[+] Loaded Process Notify Routine\n");
-
-    //// Register Thread Notification Routine
-    //status = RegisterThreadNotifyRoutine();
-    //if (!NT_SUCCESS(status)) {
-    //    DbgPrint("[-] Failed to register EdrCreateThreadNotifyRoutine : %08X\n", status);
-    //    return status;
-    //}
-    //DbgPrint("[+] Loaded Thread Notify Routine\n");
-
-    //Register Registry Callbacks
-    status = RegisterRegistryCallbacks(DriverObject);
+    //Register Image Notification Routine
+    status = RegisterImageNotifyRoutine();
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[-] Failed to register Registry callbacks : %08X\n", status);
-        return status;
+       DbgPrint("[ VettaiyanDriver ] Failed to register EdrLoadImageNotifyRoutine : %08X\n", status);
+       return status;
     }
-    DbgPrint("[+] Registry callback registration succeeded\n");
+    DbgPrint("[ VettaiyanDriver ] Loaded Image Notify Routine\n");
 
-    // Register Object Callbacks
-    status = RegisterObjectCallbacks();
+    // Register Process Notification Routine
+    status = RegisterProcessNotifyRoutine();
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[-] Failed to register Object callbacks : %08X\n", status);
-        return status;
+       DbgPrint("[ VettaiyanDriver ] Failed to register EdrCreateProcessNotifyRoutine : %08X\n", status);
+       return status;
     }
-    DbgPrint("[+] Object callback registration succeeded\n");
+    DbgPrint("[ VettaiyanDriver ] Loaded Process Notify Routine\n");
 
-    DbgPrint("[+] Driver Loaded Successfully\n");
+    // Register Thread Notification Routine
+    status = RegisterThreadNotifyRoutine();
+    if (!NT_SUCCESS(status)) {
+       DbgPrint("[ VettaiyanDriver ] Failed to register EdrCreateThreadNotifyRoutine : %08X\n", status);
+       return status;
+    }
+    DbgPrint("[ VettaiyanDriver ] Loaded Thread Notify Routine\n");
+
+    DbgPrint("[ VettaiyanDriver ] Driver Loaded Successfully\n");
     return STATUS_SUCCESS;
 
 }

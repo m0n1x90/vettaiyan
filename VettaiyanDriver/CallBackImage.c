@@ -15,7 +15,7 @@ VOID EdrLoadImageNotifyRoutine(
     SeLocateProcessImageName(Process, &ProcessName);
 
     DbgPrint(
-        "[+] Image Loaded: ProcessName = %wZ, ProcessID = %d, ImageName = %wZ\n",
+        "[ VettaiyanDriver ] Image Loaded: ProcessName = %wZ, ProcessID = %d, ImageName = %wZ\n",
         ProcessName,
         (ULONG)(ULONG_PTR)ProcessId,
         FullImageName
