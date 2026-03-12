@@ -48,7 +48,7 @@ jobs:
 
     # Build C++ Service - VettaiyanAgent
     - name: Build VettaiyanAgent (C++ Agent)
-      run: msbuild VettaiyanAgent\VettaiyanAgent.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=${{ github.workspace }}\
+      run: msbuild VettaiyanAgent\VettaiyanAgent.vcxproj /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:SolutionDir=${{ github.workspace }}\
 
     # Build Kernel Driver - VettaiyanDriver
     - name: Build VettaiyanDriver (KMDF Driver)
