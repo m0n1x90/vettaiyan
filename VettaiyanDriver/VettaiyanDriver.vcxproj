@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\Microsoft.UI.Xaml.2.8.7\build\native\Microsoft.UI.Xaml.props" Condition="Exists('..\packages\Microsoft.UI.Xaml.2.8.7\build\native\Microsoft.UI.Xaml.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -27,7 +27,11 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
     <RootNamespace>VettaiyanDriver</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VisualStudioVersion>17.0</VisualStudioVersion>
+    <DDKPlatform Condition="'$(DDKPlatform)' == '' and '$(Platform)' == 'x64'">x64</DDKPlatform>
+    <DDKPlatform Condition="'$(DDKPlatform)' == '' and '$(Platform)' == 'ARM64'">arm64</DDKPlatform>
+    <WDKContentRoot>C:\Program Files (x86)\Windows Kits\10\</WDKContentRoot>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -63,6 +67,24 @@
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <!-- VS 2025/2026 WDK toolset is missing path variables and imports; define them explicitly -->
+  <PropertyGroup Label="WDK_VS2026_Compat">
+    <DDKPlatform Condition="'$(DDKPlatform)' == '' and '$(Platform)' == 'Win32'">x86</DDKPlatform>
+    <DDKPlatform Condition="'$(DDKPlatform)' == '' and '$(Platform)' == 'x64'">x64</DDKPlatform>
+    <DDKPlatform Condition="'$(DDKPlatform)' == '' and '$(Platform)' == 'ARM64'">arm64</DDKPlatform>
+    <KM_IncludePath Condition="'$(KM_IncludePath)' == ''">$(WDKContentRoot)Include\$(TargetPlatformVersion)\km</KM_IncludePath>
+    <CRT_IncludePath Condition="'$(CRT_IncludePath)' == ''">$(WDKContentRoot)Include\$(TargetPlatformVersion)\km\crt</CRT_IncludePath>
+    <DDK_LIB_PATH Condition="'$(DDK_LIB_PATH)' == ''">$(WDKContentRoot)Lib\$(TargetPlatformVersion)\km\$(DDKPlatform)\</DDK_LIB_PATH>
+    <DDK_LibraryPath_DDKPlatform Condition="'$(DDK_LibraryPath_DDKPlatform)' == ''">$(DDK_LIB_PATH)</DDK_LibraryPath_DDKPlatform>
+    <KernelBufferOverflowLib Condition="'$(KernelBufferOverflowLib)' == ''">$(DDK_LIB_PATH)BufferOverflowFastFailK.lib</KernelBufferOverflowLib>
+    <KMDF_INC_PATH Condition="'$(KMDF_INC_PATH)' == ''">$(WDKContentRoot)Include\wdf\kmdf\</KMDF_INC_PATH>
+    <KMDF_LIB_PATH Condition="'$(KMDF_LIB_PATH)' == ''">$(WDKContentRoot)Lib\wdf\kmdf\$(DDKPlatform)\</KMDF_LIB_PATH>
+    <IncludePath>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(IncludePath)</IncludePath>
+    <LibraryPath>$(DDK_LIB_PATH);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <Import Project="$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.KernelMode.Default.props" Condition="Exists('$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.KernelMode.Default.props')" />
+  <Import Project="$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.LateEvaluation.props" Condition="Exists('$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.LateEvaluation.props')" />
+  <Import Project="$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.KernelMode.LateEvaluation.props" Condition="Exists('$(WDKContentRoot)build\$(WDKBuildFolder)\WindowsDriver.KernelMode.LateEvaluation.props')" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">

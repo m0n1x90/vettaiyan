@@ -1,10 +1,10 @@
 {
-  "name": "vettaiyan-edr",
+  "name": "anti-malware",
   "version": "0.1.0",
   "dependencies": [
     "yara",
-    "sqlite3",
-    "libmagic"
+    "libmagic",
+    "sqlite3"
   ],
-  "builtin-baseline": "dd306f32e07d87fdb16837af64f33b6b415c770a"
+  "builtin-baseline": "e5a1490e1409d175932ef6014519e9ae149ddb7c"
 }
