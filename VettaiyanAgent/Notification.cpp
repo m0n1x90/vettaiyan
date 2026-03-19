@@ -1,73 +1,37 @@
 #include "Log.h"
 #include "Utils.h"
 #include "Notification.h"
+#include "Agent.h"
+#include "WebServer.h"
 
 void LaunchNotification(const std::vector<std::wstring>& toastData) {
 
     if (toastData.size() < 3) return;
 
-    std::wstring typeEncoded = UrlEncode(toastData[0]);
-    std::wstring titleEncoded = UrlEncode(toastData[1]);
-    std::wstring messageEncoded = UrlEncode(toastData[2]);
+    // Broadcast to SSE clients (web dashboard)
+    std::string type(toastData[0].begin(), toastData[0].end());
+    std::string title(toastData[1].begin(), toastData[1].end());
+    std::string message(toastData[2].begin(), toastData[2].end());
+    BroadcastNotification(type, title, message);
 
-    std::wstring uri = L"vettaiyan://toast?type="+typeEncoded+L"&title="+titleEncoded+L"&message="+messageEncoded;
+    // Also send to named pipe for any external listeners
+    std::wstring pipeMsg = toastData[0] + L"|" + toastData[1] + L"|" + toastData[2];
 
-    DWORD sessionId = WTSGetActiveConsoleSessionId();
-    HANDLE userToken = nullptr;
-
-    if (!WTSQueryUserToken(sessionId, &userToken)) {
-        LogMessage(L"[!] WTSQueryUserToken failed");
-        return;
-    }
-
-    HANDLE duplicatedToken = nullptr;
-    if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &duplicatedToken)) {
-        CloseHandle(userToken);
-        LogMessage(L"[!] DuplicateTokenEx failed");
-        return;
-    }
-
-    LPVOID env = nullptr;
-    if (!CreateEnvironmentBlock(&env, duplicatedToken, FALSE)) {
-        LogMessage(L"[!] CreateEnvironmentBlock failed");
-        CloseHandle(duplicatedToken);
-        CloseHandle(userToken);
-        return;
-    }
-
-    std::wstring commandLine = L"explorer.exe \"" + uri + L"\"";
-
-    STARTUPINFO si = { sizeof(si) };
-    si.lpDesktop = const_cast<LPWSTR>(L"winsta0\\default");
-    PROCESS_INFORMATION pi;
-
-    BOOL result = CreateProcessAsUserW(
-        duplicatedToken,
+    HANDLE hPipe = CreateFileW(
+        NOTIFY_PIPE_NAME,
+        GENERIC_WRITE,
+        0,
         nullptr,
-        &commandLine[0],
-        nullptr,
-        nullptr,
-        FALSE,
-        CREATE_UNICODE_ENVIRONMENT,
-        env,
-        nullptr,
-        &si,
-        &pi
+        OPEN_EXISTING,
+        0,
+        nullptr
     );
 
-    if (result) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-    else {
-        LogMessage(L"[!] CreateProcessAsUser failed to launch toast");
+    if (hPipe != INVALID_HANDLE_VALUE) {
+        DWORD bytesWritten;
+        WriteFile(hPipe, pipeMsg.c_str(), (DWORD)(pipeMsg.size() * sizeof(wchar_t)), &bytesWritten, nullptr);
+        CloseHandle(hPipe);
     }
 
-    if (env) DestroyEnvironmentBlock(env);
-    CloseHandle(duplicatedToken);
-    CloseHandle(userToken);
-
+    LogMessage(L"[ Notification ] Sent: " + toastData[1]);
 }
-
-
-

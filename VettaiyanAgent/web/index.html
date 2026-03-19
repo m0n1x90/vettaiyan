@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vettaiyan EDR</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <nav id="sidebar">
+            <div class="brand">
+                <div class="brand-icon">🛡️</div>
+                <div>
+                    <div class="brand-title">Vettaiyan EDR</div>
+                    <div class="brand-sub">Endpoint Protection</div>
+                </div>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-item active" data-page="dashboard"><span class="nav-icon">⌂</span> Dashboard</li>
+                <li class="nav-item" data-page="threats"><span class="nav-icon">⚠</span> Threats</li>
+                <li class="nav-item" data-page="timeline"><span class="nav-icon">☰</span> Timeline</li>
+                <li class="nav-item" data-page="detections"><span class="nav-icon">◉</span> Detections</li>
+                <li class="nav-item" data-page="response"><span class="nav-icon">⚡</span> Response</li>
+                <li class="nav-item" data-page="scan"><span class="nav-icon">⊙</span> Scan</li>
+                <li class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> Settings</li>
+            </ul>
+        </nav>
+        <main id="content"></main>
+    </div>
+
+    <!-- Notification toast container -->
+    <div id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -78,7 +78,7 @@ Test-Path '\\.\pipe\VettaiyanScanner'
 Run the agent
 
 ```powershell
- sc.exe create Vettaiyan binPath= "C:\Users\monis\source\repos\VettaiyanEDR\x64\Debug\VettaiyanAgent.exe"             
+sc.exe create Vettaiyan binPath= "C:\Users\monis\source\repos\VettaiyanEDR\x64\Debug\VettaiyanAgent.exe"             
 
 sc.exe start Vettaiyan
 

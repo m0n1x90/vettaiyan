@@ -24,7 +24,13 @@ void AddContextMenuEntry() {
 
     if (RegCreateKeyW(HKEY_LOCAL_MACHINE, commandPath.c_str(), &hKey) == ERROR_SUCCESS) {
 
-        std::wstring command = L"explorer \"vettaiyan://scan?target=%1\"";
+        // Send file path directly to agent's scanner pipe via PowerShell
+        std::wstring command = L"powershell.exe -WindowStyle Hidden -Command \""
+            L"$p=New-Object System.IO.Pipes.NamedPipeClientStream('.','VettaiyanScanner','Out');"
+            L"$p.Connect(2000);"
+            L"$b=[System.Text.Encoding]::Unicode.GetBytes('%1');"
+            L"$p.Write($b,0,$b.Length);"
+            L"$p.Close()\"";
         RegSetValueExW(hKey, nullptr, 0, REG_SZ, (const BYTE*)command.c_str(), (command.size() + 1) * sizeof(wchar_t));
         RegCloseKey(hKey);
 

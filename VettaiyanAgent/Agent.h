@@ -16,5 +16,7 @@
 const std::wstring SERVICE_NAME = L"Vettaiyan";
 
 #define SCANNER_PIPE_NAME L"\\\\.\\pipe\\VettaiyanScanner"
+#define COMMAND_PIPE_NAME L"\\\\.\\pipe\\VettaiyanCommand"
+#define NOTIFY_PIPE_NAME  L"\\\\.\\pipe\\VettaiyanNotify"
 
 #endif

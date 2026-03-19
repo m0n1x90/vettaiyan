@@ -63,11 +63,11 @@ AddReg           = MiniFilter.AddRegistry
 ;
 
 [MiniFilter.AddRegistry]
-HKR,,"DebugFlags",0x00010001 ,0x0
-HKR,,"SupportedFeatures",0x00010001,0x3
-HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
-HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
-HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+HKR,"Parameters","DebugFlags",0x00010001,0x0
+HKR,"Parameters","SupportedFeatures",0x00010001,0x3
+HKR,"Parameters\Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Parameters\Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Parameters\Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
 
 ;
 ; Copy Files
@@ -98,5 +98,5 @@ DiskId1                 = "Vettaiyan Kernel Device Installation Disk"
 DefaultInstance         = "Vettaiyan Filter Instance"
 Instance1.Name          = "Vettaiyan Filter Instance"
 ; TODO - Change the altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
-Instance1.Altitude       = "369101"
+Instance1.Altitude       = "369100"
 Instance1.Flags         = 0x0              ; Allow all attachments

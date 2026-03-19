@@ -102,14 +102,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)EdrCommon;$(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
+        ws2_32.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libcrypto.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libssl.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libyara.lib;
@@ -128,10 +130,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>
-        $(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)
+        $(SolutionDir)EdrCommon;$(SolutionDir)vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -143,6 +146,7 @@
         $(SolutionDir)vcpkg_installed\x64-windows\lib;%(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
       <AdditionalDependencies>
+        ws2_32.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libcrypto.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libssl.lib;
         $(SolutionDir)vcpkg_installed\x64-windows\lib\libyara.lib;
@@ -154,20 +158,37 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Agent.h" />
+    <ClInclude Include="BehaviorEngine.h" />
     <ClInclude Include="DbUtil.h" />
+    <ClInclude Include="EtwConsumer.h" />
+    <ClInclude Include="EventReceiver.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Notification.h" />
+    <ClInclude Include="ProcessTracker.h" />
+    <ClInclude Include="ResponseEngine.h" />
     <ClInclude Include="Support.h" />
+    <ClInclude Include="TelemetryDb.h" />
+    <ClInclude Include="TelemetryShipper.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="WebServer.h" />
     <ClInclude Include="YaraScanner.h" />
+    <ClInclude Include="..\EdrCommon\EdrEvents.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Agent.cpp" />
+    <ClCompile Include="BehaviorEngine.cpp" />
     <ClCompile Include="DbUtil.cpp" />
+    <ClCompile Include="EtwConsumer.cpp" />
+    <ClCompile Include="EventReceiver.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="Notification.cpp" />
+    <ClCompile Include="ProcessTracker.cpp" />
+    <ClCompile Include="ResponseEngine.cpp" />
     <ClCompile Include="Support.cpp" />
+    <ClCompile Include="TelemetryDb.cpp" />
+    <ClCompile Include="TelemetryShipper.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="WebServer.cpp" />
     <ClCompile Include="YaraScanner.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,11 +207,63 @@
         $(OutDir)/Assets/icons</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="assets\vettaiyan.ini">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64' or '$(Configuration)|$(Platform)'=='Release|x64'">
+        $(OutDir)</DestinationFolders>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <Target Name="CopyWebFolder" AfterTargets="Build">
+    <ItemGroup>
+      <WebFiles Include="$(ProjectDir)web\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WebFiles)" DestinationFiles="@(WebFiles->'$(OutDir)web\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="CopyRulesFolder" AfterTargets="Build">
     <ItemGroup>
       <RulesToCopy Include="$(SolutionDir)rules\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(RulesToCopy)" DestinationFiles="@(RulesToCopy->'$(OutDir)rules\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyVCRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <!-- Debug: copy VC debug CRT DLLs so the exe runs on machines without VS -->
+    <ItemGroup Condition="'$(Configuration)'=='Debug'">
+      <DebugCrt Include="$(VCInstallDir)Redist\MSVC\*\debug_nonredist\x64\Microsoft.VC145.DebugCRT\vcruntime140d.dll" />
+      <DebugCrt Include="$(VCInstallDir)Redist\MSVC\*\debug_nonredist\x64\Microsoft.VC145.DebugCRT\vcruntime140_1d.dll" />
+      <DebugCrt Include="$(VCInstallDir)Redist\MSVC\*\debug_nonredist\x64\Microsoft.VC145.DebugCRT\msvcp140d.dll" />
+      <DebugCrt Include="$(VCInstallDir)Redist\MSVC\*\debug_nonredist\x64\Microsoft.VC145.DebugCRT\concrt140d.dll" />
+      <DebugUcrt Include="$(UniversalCRTSdkDir)bin\*\x64\ucrt\ucrtbased.dll" />
+    </ItemGroup>
+    <Copy Condition="'$(Configuration)'=='Debug'" SourceFiles="@(DebugCrt)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+    <Copy Condition="'$(Configuration)'=='Debug'" SourceFiles="@(DebugUcrt)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+    <!-- Release CRT: always copy because vcpkg DLLs are release-built and need vcruntime140.dll -->
+    <ItemGroup>
+      <ReleaseCrt Include="$(VCInstallDir)Redist\MSVC\*\x64\Microsoft.VC145.CRT\vcruntime140.dll" />
+      <ReleaseCrt Include="$(VCInstallDir)Redist\MSVC\*\x64\Microsoft.VC145.CRT\vcruntime140_1.dll" />
+      <ReleaseCrt Include="$(VCInstallDir)Redist\MSVC\*\x64\Microsoft.VC145.CRT\msvcp140.dll" />
+      <ReleaseCrt Include="$(VCInstallDir)Redist\MSVC\*\x64\Microsoft.VC145.CRT\concrt140.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ReleaseCrt)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+  </Target>
+  <Target Name="CopyRuntimeDeps" AfterTargets="Build">
+    <!-- vcpkg runtime DLLs -->
+    <ItemGroup>
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\magic-1.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\sqlite3.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\libcrypto-3-x64.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\libssl-3-x64.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\tre.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\getopt.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\legacy.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\brotlicommon.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\brotlidec.dll" />
+      <VcpkgDlls Include="$(SolutionDir)vcpkg_installed\x64-windows\bin\brotlienc.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(VcpkgDlls)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <!-- libmagic database -->
+    <Copy SourceFiles="$(SolutionDir)vcpkg_installed\x64-windows\share\libmagic\misc\magic.mgc" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
     <None Include="packages.config" />
