@@ -48,6 +48,14 @@ bool InitializeYara() {
     std::string narrowPath(compiledRulesPath.begin(), compiledRulesPath.end());
     LogMessage(L"[ VettaiyanAgent ] Attempting to load YARA rules from: " + compiledRulesPath);
 
+    /* Check if file exists before loading */
+    DWORD attr = GetFileAttributesW(compiledRulesPath.c_str());
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        LogMessage(L"[ VettaiyanAgent ] YARA rules file NOT FOUND: " + compiledRulesPath);
+        yr_finalize();
+        return false;
+    }
+
     int result = yr_rules_load(narrowPath.c_str(), &YARA_RULES);
     if (result != ERROR_SUCCESS) {
         yr_finalize();

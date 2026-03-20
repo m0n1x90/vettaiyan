@@ -554,6 +554,9 @@ void AnalyzeThreadEvent(const EDR_THREAD_EVENT* event)
 {
     if (!event) return;
 
+    /* Skip events originating from the agent itself */
+    if (event->Header.ProcessId == GetCurrentProcessId()) return;
+
     /* Remote thread injection detection (T1055) */
     if (event->Header.EventType == EdrEventThreadCreate && event->IsRemoteThread) {
         /* Skip system processes — kernel and core OS routinely create
@@ -591,6 +594,10 @@ void AnalyzeFileEvent(const EDR_FILE_EVENT* event)
 void AnalyzeHandleEvent(const EDR_HANDLE_EVENT* event)
 {
     if (!event) return;
+
+    /* Skip events originating from the agent itself — the agent opens
+       handles to other processes for scanning, kill, etc. */
+    if (event->Header.ProcessId == GetCurrentProcessId()) return;
 
     /* Process hollowing / injection via handle access (T1055) */
     if (IsKnownSystemProcess(event->Header.ProcessId)) return;

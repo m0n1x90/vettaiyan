@@ -13,9 +13,9 @@ set "EDR_DIR=%EDR_DIR:~0,-1%"
 
 :: Component paths
 set "AGENT_EXE=%EDR_DIR%\VettaiyanAgent.exe"
-set "DRIVER_SYS=%EDR_DIR%\VettaiyanDriver\VettaiyanDriver.sys"
+set "DRIVER_SYS=%EDR_DIR%\VettaiyanDriver.sys"
 set "DRIVER_CER=%EDR_DIR%\VettaiyanDriver.cer"
-set "FILTER_SYS=%EDR_DIR%\VettaiyanFilter\VettaiyanFilter.sys"
+set "FILTER_SYS=%EDR_DIR%\VettaiyanFilter.sys"
 set "FILTER_CER=%EDR_DIR%\VettaiyanFilter.cer"
 set "WEB_DIR=%EDR_DIR%\web"
 set "DASHBOARD_URL=http://127.0.0.1:9630"

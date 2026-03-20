@@ -33,5 +33,5 @@ void LaunchNotification(const std::vector<std::wstring>& toastData) {
         CloseHandle(hPipe);
     }
 
-    LogMessage(L"[ Notification ] Sent: " + toastData[1]);
+    // LogMessage(L"[ Notification ] Sent: " + toastData[1]);
 }

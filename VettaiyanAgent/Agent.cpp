@@ -308,9 +308,6 @@ void OnBehaviorDetection(const BehaviorDetection& detection)
     /* Store in telemetry DB */
     StoreBehaviorDetection(detection);
 
-    LogMessage(L"[!] BEHAVIORAL DETECTION: " + detection.RuleName + L" - " + detection.Description +
-        L" [" + detection.MitreTechnique + L"]");
-
     /* Auto-response based on severity */
     if (detection.Severity >= DetectionSeverity::High) {
         /* Send toast notification for high+ severity */
@@ -344,12 +341,22 @@ void OnBehaviorDetection(const BehaviorDetection& detection)
         }
 
         if (safe) {
+            /* Never kill our own process — the agent itself may trigger
+               behavioral heuristics (handle duplication, thread creation, etc.) */
+            if (detection.ProcessId == GetCurrentProcessId()) {
+                LogMessage(L"[!] CRITICAL DETECTION on self (PID " +
+                    std::to_wstring(detection.ProcessId) + L") — auto-kill suppressed: " + detection.RuleName);
+                safe = false;
+            }
+        }
+
+        if (safe) {
             LogMessage(L"[!] AUTO-RESPONSE: Killing PID " + std::to_wstring(detection.ProcessId) +
                 L" due to critical detection: " + detection.RuleName);
             KillProcess(detection.ProcessId);
         } else {
-            LogMessage(L"[!] CRITICAL DETECTION on protected/system process PID " +
-                std::to_wstring(detection.ProcessId) + L" — auto-kill suppressed: " + detection.RuleName);
+            // LogMessage(L"[!] CRITICAL DETECTION on protected/system process PID " +
+            //     std::to_wstring(detection.ProcessId) + L" — auto-kill suppressed: " + detection.RuleName);
         }
     }
 }
@@ -534,21 +541,26 @@ static DWORD ServiceWorkerThreadInner();  /* forward decl */
 
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     UNREFERENCED_PARAMETER(lpParam);
+    DWORD result = ERROR_SUCCESS;
     try {
-        return ServiceWorkerThreadInner();
+        result = ServiceWorkerThreadInner();
     }
     catch (const std::exception& ex) {
         wchar_t buf[512];
         swprintf_s(buf, L"FATAL C++ exception in ServiceWorkerThread: %S", ex.what());
         DiagLog(buf);
         LogMessage(buf);
-        return ERROR_UNHANDLED_EXCEPTION;
+        result = ERROR_UNHANDLED_EXCEPTION;
     }
     catch (...) {
         DiagLog(L"FATAL unknown exception in ServiceWorkerThread");
         LogMessage(L"FATAL unknown exception in ServiceWorkerThread");
-        return ERROR_UNHANDLED_EXCEPTION;
+        result = ERROR_UNHANDLED_EXCEPTION;
     }
+    wchar_t exitBuf[128];
+    swprintf_s(exitBuf, L"ServiceWorkerThread exiting with code %lu", result);
+    DiagLog(exitBuf);
+    return result;
 }
 
 static DWORD ServiceWorkerThreadInner() {
@@ -563,7 +575,7 @@ static DWORD ServiceWorkerThreadInner() {
     DiagLog(L"Phase 1: Initializing YARA...");
     if (!InitializeYara()) {
         LogMessage(L"[ VettaiyanAgent ] Failed to initialize YARA");
-        DiagLog(L"YARA init FAILED");
+        DiagLog(L"YARA init FAILED — returning ERROR_INTERNAL_ERROR (service will stop)");
         return ERROR_INTERNAL_ERROR;
     }
     LogMessage(L"[ VettaiyanAgent ] YARA engine initialized");
@@ -644,20 +656,28 @@ static DWORD ServiceWorkerThreadInner() {
     }
 
     /* Phase 7: Initialize ETW consumer */
+    DiagLog(L"Phase 7: Initializing ETW consumer...");
     RegisterEtwCallback(OnEtwEvent);
     if (!InitializeEtwConsumer()) {
         LogMessage(L"[ VettaiyanAgent ] ETW consumer init failed (requires admin, non-fatal)");
+        DiagLog(L"Phase 7: ETW init failed (non-fatal)");
+    } else {
+        DiagLog(L"Phase 7 OK");
     }
 
     /* Phase 8: Start scanner queue */
+    DiagLog(L"Phase 8: Starting scanner queue...");
     InitializeCriticalSection(&g_queueLock);
     g_queueEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
     CreateThread(NULL, 0, ScannerWorkerThread, NULL, 0, NULL);
     LogMessage(L"[ VettaiyanAgent ] YARA scanner thread started");
+    DiagLog(L"Phase 8 OK");
 
     /* Phase 9: Start command pipe handler */
+    DiagLog(L"Phase 9: Starting command pipe handler...");
     g_CommandThread = CreateThread(NULL, 0, CommandWorkerThread, NULL, 0, NULL);
     LogMessage(L"[ VettaiyanAgent ] Command handler started");
+    DiagLog(L"Phase 9 OK");
 
     /* Phase 10: Start embedded web server */
     DiagLog(L"Phase 10: Starting WebServer...");
@@ -666,6 +686,7 @@ static DWORD ServiceWorkerThreadInner() {
     DiagLog(L"Phase 10 OK: WebServer started");
 
     /* Phase 11: Scanner pipe listener (existing IPC for scan requests) */
+    DiagLog(L"Phase 11: Setting up scanner pipe...");
     LogMessage(L"[ VettaiyanAgent ] ====== ALL SYSTEMS OPERATIONAL ======");
 
     HANDLE pipe;
@@ -676,9 +697,14 @@ static DWORD ServiceWorkerThreadInner() {
 
     LPCWSTR sddl = L"D:(A;OICI;GRGW;;;WD)";
     if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, SDDL_REVISION_1, &pSD, NULL)) {
+        DWORD err = GetLastError();
+        wchar_t buf[128];
+        swprintf_s(buf, L"Phase 11: SDDL conversion FAILED err=%lu", err);
+        DiagLog(buf);
         LogMessage(L"[ VettaiyanAgent ] Failed to convert SDDL string to security descriptor");
         return ERROR_ACCESS_DENIED;
     }
+    DiagLog(L"Phase 11: Entering pipe loop");
 
     sa.nLength = sizeof(sa);
     sa.lpSecurityDescriptor = pSD;
