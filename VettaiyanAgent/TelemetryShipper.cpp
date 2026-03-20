@@ -131,11 +131,9 @@ static std::string GetHostname()
 
 /* ---- JSON serialization ---- */
 
-static std::string SerializeEvent(const EDR_EVENT_HEADER* header, const std::string& detailUtf8)
+static std::string SerializeEvent(const EDR_EVENT_HEADER* header, const void* eventData, const char* sha256)
 {
-    /* Convert LARGE_INTEGER timestamp to ISO 8601.
-       Kernel timestamp is 100ns intervals since 1601-01-01.
-       We convert to SYSTEMTIME then format. */
+    /* Convert LARGE_INTEGER timestamp to ISO 8601 */
     SYSTEMTIME st = {};
     FILETIME ft;
     ft.dwLowDateTime  = header->Timestamp.LowPart;
@@ -147,18 +145,98 @@ static std::string SerializeEvent(const EDR_EVENT_HEADER* header, const std::str
         st.wYear, st.wMonth, st.wDay,
         st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 
-    /* Build JSON manually -- avoids pulling in a JSON library.
-       Simple and fast for a fixed schema. */
+    /* Common header fields */
     std::ostringstream js;
     js << "{"
-       << "\"host\":\"" << JsonEscape(g_Hostname) << "\","
+       << "\"computerName\":\"" << JsonEscape(g_Hostname) << "\","
        << "\"eventType\":\"" << EventTypeToString(header->EventType) << "\","
-       << "\"processId\":" << header->ProcessId << ","
-       << "\"threadId\":" << header->ThreadId << ","
+       << "\"processId\":\"" << header->ProcessId << "\","
+       << "\"threadId\":\"" << header->ThreadId << "\","
        << "\"sequenceNumber\":" << header->SequenceNumber << ","
-       << "\"timestamp\":\"" << timeBuf << "\","
-       << "\"detail\":\"" << JsonEscape(detailUtf8) << "\""
-       << "}";
+       << "\"timestamp\":\"" << timeBuf << "\"";
+
+    /* Event-specific fields */
+    switch (header->EventType) {
+    case EdrEventProcessCreate:
+    case EdrEventProcessTerminate:
+        {
+            auto e = (const EDR_PROCESS_EVENT*)eventData;
+            js << ",\"parentProcessId\":\"" << e->ParentProcessId << "\""
+               << ",\"sessionId\":" << e->SessionId
+               << ",\"imagePath\":\"" << JsonEscape(WideToUtf8(e->ImagePath)) << "\""
+               << ",\"commandLine\":\"" << JsonEscape(WideToUtf8(e->CommandLine)) << "\"";
+        }
+        break;
+    case EdrEventImageLoad:
+        {
+            auto e = (const EDR_IMAGE_EVENT*)eventData;
+            js << ",\"imagePath\":\"" << JsonEscape(WideToUtf8(e->ImagePath)) << "\""
+               << ",\"imageBase\":\"0x" << std::hex << e->ImageBase << std::dec << "\""
+               << ",\"imageSize\":" << e->ImageSize;
+        }
+        break;
+    case EdrEventThreadCreate:
+    case EdrEventThreadTerminate:
+        {
+            auto e = (const EDR_THREAD_EVENT*)eventData;
+            js << ",\"targetProcessId\":\"" << e->TargetProcessId << "\""
+               << ",\"targetThreadId\":\"" << e->TargetThreadId << "\""
+               << ",\"isRemoteThread\":" << (e->IsRemoteThread ? "true" : "false");
+        }
+        break;
+    case EdrEventRegistrySetValue:
+    case EdrEventRegistryDeleteValue:
+    case EdrEventRegistryDeleteKey:
+    case EdrEventRegistryRenameKey:
+    case EdrEventRegistryCreateKey:
+        {
+            auto e = (const EDR_REGISTRY_EVENT*)eventData;
+            js << ",\"keyPath\":\"" << JsonEscape(WideToUtf8(e->KeyPath)) << "\""
+               << ",\"valueName\":\"" << JsonEscape(WideToUtf8(e->ValueName)) << "\"";
+        }
+        break;
+    case EdrEventFileCreate:
+    case EdrEventFileWrite:
+    case EdrEventFileDelete:
+    case EdrEventFileRename:
+    case EdrEventFileClose:
+        {
+            auto e = (const EDR_FILE_EVENT*)eventData;
+            js << ",\"filePath\":\"" << JsonEscape(WideToUtf8(e->FilePath)) << "\"";
+            if (e->NewFilePath[0])
+                js << ",\"newFilePath\":\"" << JsonEscape(WideToUtf8(e->NewFilePath)) << "\"";
+            if (e->ProcessImagePath[0])
+                js << ",\"processImagePath\":\"" << JsonEscape(WideToUtf8(e->ProcessImagePath)) << "\"";
+            js << ",\"fileSize\":" << e->FileSize.QuadPart
+               << ",\"fileAttributes\":" << e->FileAttributes;
+            if (header->EventType == EdrEventFileCreate) {
+                js << ",\"createDisposition\":" << e->CreateDisposition
+                   << ",\"desiredAccess\":\"0x" << std::hex << e->DesiredAccess << std::dec << "\""
+                   << ",\"shareAccess\":\"0x" << std::hex << e->ShareAccess << std::dec << "\""
+                   << ",\"createOptions\":\"0x" << std::hex << e->CreateOptions << std::dec << "\"";
+            }
+            if (header->EventType == EdrEventFileWrite) {
+                js << ",\"writeOffset\":" << e->WriteOffset.QuadPart
+                   << ",\"writeLength\":" << e->WriteLength;
+            }
+            if (sha256 && sha256[0])
+                js << ",\"sha256\":\"" << sha256 << "\"";
+        }
+        break;
+    case EdrEventHandleCreate:
+    case EdrEventHandleDuplicate:
+        {
+            auto e = (const EDR_HANDLE_EVENT*)eventData;
+            js << ",\"targetProcessId\":\"" << e->TargetProcessId << "\""
+               << ",\"targetThreadId\":\"" << e->TargetThreadId << "\""
+               << ",\"desiredAccess\":\"0x" << std::hex << e->DesiredAccess << std::dec << "\"";
+        }
+        break;
+    default:
+        break;
+    }
+
+    js << "}";
     return js.str();
 }
 
@@ -330,12 +408,11 @@ void ShutdownTelemetryShipper()
 }
 
 
-void ShipEvent(const EDR_EVENT_HEADER* header, const std::wstring& detail)
+void ShipEvent(const EDR_EVENT_HEADER* header, const void* eventData, const char* sha256)
 {
     if (!g_Running.load() || !header) return;
 
-    std::string detailUtf8 = WideToUtf8(detail);
-    std::string json = SerializeEvent(header, detailUtf8);
+    std::string json = SerializeEvent(header, eventData, sha256);
 
     std::lock_guard<std::mutex> lock(g_BufferMutex);
 

@@ -14,6 +14,12 @@
 #include "TelemetryShipper.h"
 #include "WebServer.h"
 
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+
+/* Forward declaration — defined later in this file */
+static void DiagLog(const wchar_t* msg);
+
 SERVICE_STATUS        g_ServiceStatus = {};
 SERVICE_STATUS_HANDLE g_StatusHandle = nullptr;
 HANDLE                g_ServiceStopEvent = INVALID_HANDLE_VALUE;
@@ -70,60 +76,116 @@ bool DequeuePath(std::wstring& pathOut) {
 }
 
 /* ============================================================
+ *  SHA256 File Hashing (BCrypt / CNG)
+ *  Computes hash for FileClose events on priority extensions.
+ *  Filter sends NT device paths (\Device\HarddiskVolume2\...)
+ *  so we prepend \\?\GLOBALROOT to open via Win32.
+ * ============================================================ */
+#define SHA256_MAX_FILE_SIZE (100LL * 1024 * 1024)  /* 100 MB limit */
+
+static bool ShouldHashFile(const wchar_t* filePath)
+{
+    if (!filePath || wcslen(filePath) < 3) return false;
+    const wchar_t* dot = wcsrchr(filePath, L'.');
+    if (!dot || *(dot + 1) == L'\0') return false;
+    const wchar_t* ext = dot + 1;
+    for (size_t i = 0; i < EDR_SCAN_EXTENSION_COUNT; i++) {
+        if (_wcsicmp(ext, EDR_SCAN_EXTENSIONS[i]) == 0) return true;
+    }
+    return false;
+}
+
+static bool ComputeFileSha256(const wchar_t* ntPath, char* hashOut65)
+{
+    hashOut65[0] = '\0';
+
+    /* Convert NT device path to Win32: \Device\... → \\?\GLOBALROOT\Device\... */
+    std::wstring win32Path;
+    if (wcsncmp(ntPath, L"\\Device\\", 8) == 0) {
+        win32Path = L"\\\\?\\GLOBALROOT";
+        win32Path += ntPath;
+    } else {
+        win32Path = ntPath;
+    }
+
+    HANDLE hFile = CreateFileW(win32Path.c_str(), GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+
+    LARGE_INTEGER fileSize;
+    if (!GetFileSizeEx(hFile, &fileSize) || fileSize.QuadPart > SHA256_MAX_FILE_SIZE || fileSize.QuadPart == 0) {
+        CloseHandle(hFile);
+        return false;
+    }
+
+    BCRYPT_ALG_HANDLE hAlg = NULL;
+    BCRYPT_HASH_HANDLE hHash = NULL;
+    bool ok = false;
+
+    if (BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0) == 0) {
+        if (BCryptCreateHash(hAlg, &hHash, NULL, 0, NULL, 0, 0) == 0) {
+            BYTE buf[65536];
+            DWORD bytesRead;
+            while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead > 0) {
+                BCryptHashData(hHash, buf, bytesRead, 0);
+            }
+            BYTE hash[32];
+            if (BCryptFinishHash(hHash, hash, 32, 0) == 0) {
+                for (int i = 0; i < 32; i++)
+                    sprintf_s(hashOut65 + i * 2, 3, "%02x", hash[i]);
+                hashOut65[64] = '\0';
+                ok = true;
+            }
+            BCryptDestroyHash(hHash);
+        }
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+    }
+
+    CloseHandle(hFile);
+    return ok;
+}
+
+/* ============================================================
  *  Kernel Event Processing Callback
  *  This is the central event dispatcher - routes kernel events
  *  to process tracker, behavior engine, and telemetry DB.
  * ============================================================ */
+static void OnKernelEventInner(const EDR_EVENT_HEADER* header, const void* eventData, ULONG eventSize);
+
 void OnKernelEvent(const EDR_EVENT_HEADER* header, const void* eventData, ULONG eventSize)
 {
+    __try {
+        OnKernelEventInner(header, eventData, eventSize);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        wchar_t buf[256];
+        swprintf_s(buf, L"SEH in OnKernelEvent: 0x%08X eventType=%d",
+            GetExceptionCode(), header ? header->EventType : -1);
+        DiagLog(buf);
+    }
+}
+
+static void OnKernelEventInner(const EDR_EVENT_HEADER* header, const void* eventData, ULONG eventSize)
+{
+    UNREFERENCED_PARAMETER(eventSize);
     if (!header) return;
+
+    /* For FileClose on priority extensions, compute SHA256 before shipping.
+       Uses BCrypt (CNG) to hash the file contents. Skips files > 100MB. */
+    const char* sha256 = nullptr;
+    char sha256Buf[65] = {};
+    if (header->EventType == EdrEventFileClose) {
+        const EDR_FILE_EVENT* fe = (const EDR_FILE_EVENT*)eventData;
+        if (ShouldHashFile(fe->FilePath) && ComputeFileSha256(fe->FilePath, sha256Buf)) {
+            sha256 = sha256Buf;
+        }
+    }
 
     /* Ship every event to the cloud backend (transit buffer → HTTP POST).
        This is the raw telemetry stream -- all event types, no filtering.
        The backend handles storage, indexing, and retention. */
-    {
-        std::wstring detail;
-        switch (header->EventType) {
-        case EdrEventProcessCreate:
-        case EdrEventProcessTerminate:
-            { auto e = (const EDR_PROCESS_EVENT*)eventData;
-              detail = L"PID=" + std::to_wstring(e->Header.ProcessId) + L" PPID=" + std::to_wstring(e->ParentProcessId) + L" Image=" + e->ImagePath; }
-            break;
-        case EdrEventImageLoad:
-            { auto e = (const EDR_IMAGE_EVENT*)eventData;
-              detail = L"PID=" + std::to_wstring(header->ProcessId) + L" Image=" + e->ImagePath; }
-            break;
-        case EdrEventThreadCreate:
-        case EdrEventThreadTerminate:
-            { auto e = (const EDR_THREAD_EVENT*)eventData;
-              detail = L"SourcePID=" + std::to_wstring(header->ProcessId) + L" TargetPID=" + std::to_wstring(e->TargetProcessId) + L" Remote=" + (e->IsRemoteThread ? L"1" : L"0"); }
-            break;
-        case EdrEventRegistrySetValue:
-        case EdrEventRegistryDeleteValue:
-        case EdrEventRegistryDeleteKey:
-        case EdrEventRegistryRenameKey:
-        case EdrEventRegistryCreateKey:
-            { auto e = (const EDR_REGISTRY_EVENT*)eventData;
-              detail = L"PID=" + std::to_wstring(header->ProcessId) + L" Key=" + e->KeyPath; }
-            break;
-        case EdrEventFileCreate:
-        case EdrEventFileWrite:
-        case EdrEventFileDelete:
-        case EdrEventFileRename:
-        case EdrEventFileClose:
-            { auto e = (const EDR_FILE_EVENT*)eventData;
-              detail = L"PID=" + std::to_wstring(header->ProcessId) + L" Path=" + e->FilePath;
-              if (header->EventType == EdrEventFileRename && e->NewFilePath[0]) detail += L" NewPath=" + std::wstring(e->NewFilePath); }
-            break;
-        case EdrEventHandleCreate:
-        case EdrEventHandleDuplicate:
-            { auto e = (const EDR_HANDLE_EVENT*)eventData;
-              detail = L"PID=" + std::to_wstring(header->ProcessId) + L" TargetPID=" + std::to_wstring(e->TargetProcessId) + L" Access=0x" + std::to_wstring(e->DesiredAccess); }
-            break;
-        default: break;
-        }
-        ShipEvent(header, detail);
-    }
+    ShipEvent(header, eventData, sha256);
 
     switch (header->EventType) {
     case EdrEventProcessCreate:
@@ -261,10 +323,34 @@ void OnBehaviorDetection(const BehaviorDetection& detection)
     }
 
     if (detection.Severity >= DetectionSeverity::Critical) {
-        /* Auto-kill for critical severity */
-        LogMessage(L"[!] AUTO-RESPONSE: Killing PID " + std::to_wstring(detection.ProcessId) +
-            L" due to critical detection: " + detection.RuleName);
-        KillProcess(detection.ProcessId);
+        /* Guard: never auto-kill critical Windows processes.
+           Killing csrss, lsass, services, smss, wininit, etc. = instant BSOD. */
+        bool safe = true;
+        const ProcessNode* proc = GetProcessNode(detection.ProcessId);
+        if (!proc || !proc->IsAlive) {
+            safe = false;   /* PID gone or recycled */
+        } else {
+            static const wchar_t* PROTECTED[] = {
+                L"system", L"smss.exe", L"csrss.exe", L"wininit.exe",
+                L"services.exe", L"lsass.exe", L"winlogon.exe",
+                L"svchost.exe", L"dwm.exe", L"fontdrvhost.exe",
+                L"msdtc.exe", L"spoolsv.exe",
+            };
+            for (auto& p : PROTECTED) {
+                if (_wcsicmp(proc->ImageName.c_str(), p) == 0) { safe = false; break; }
+            }
+            if (detection.ProcessId <= 4) safe = false;  /* PID 0 (Idle) / PID 4 (System) */
+            if (proc->SessionId == 0 && proc->ParentProcessId <= 4) safe = false; /* Session-0 system service */
+        }
+
+        if (safe) {
+            LogMessage(L"[!] AUTO-RESPONSE: Killing PID " + std::to_wstring(detection.ProcessId) +
+                L" due to critical detection: " + detection.RuleName);
+            KillProcess(detection.ProcessId);
+        } else {
+            LogMessage(L"[!] CRITICAL DETECTION on protected/system process PID " +
+                std::to_wstring(detection.ProcessId) + L" — auto-kill suppressed: " + detection.RuleName);
+        }
     }
 }
 
@@ -444,8 +530,28 @@ static void DiagLog(const wchar_t* msg) {
 /* ============================================================
  *  Main Service Worker
  * ============================================================ */
+static DWORD ServiceWorkerThreadInner();  /* forward decl */
+
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     UNREFERENCED_PARAMETER(lpParam);
+    try {
+        return ServiceWorkerThreadInner();
+    }
+    catch (const std::exception& ex) {
+        wchar_t buf[512];
+        swprintf_s(buf, L"FATAL C++ exception in ServiceWorkerThread: %S", ex.what());
+        DiagLog(buf);
+        LogMessage(buf);
+        return ERROR_UNHANDLED_EXCEPTION;
+    }
+    catch (...) {
+        DiagLog(L"FATAL unknown exception in ServiceWorkerThread");
+        LogMessage(L"FATAL unknown exception in ServiceWorkerThread");
+        return ERROR_UNHANDLED_EXCEPTION;
+    }
+}
+
+static DWORD ServiceWorkerThreadInner() {
 
     DiagLog(L"ServiceWorkerThread started");
 
@@ -712,7 +818,19 @@ void WINAPI ServiceMain(DWORD argc, LPWSTR* argv) {
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
 }
 
+/* Global SEH crash handler -- catches access violations, stack overflows, etc.
+   that try/catch(...) doesn't cover. Logs to VettaiyanDiag.log. */
+static LONG WINAPI GlobalCrashHandler(EXCEPTION_POINTERS* ep) {
+    wchar_t buf[256];
+    swprintf_s(buf, L"FATAL SEH: code=0x%08X addr=0x%p",
+        ep->ExceptionRecord->ExceptionCode,
+        ep->ExceptionRecord->ExceptionAddress);
+    DiagLog(buf);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
 int wmain() {
+    SetUnhandledExceptionFilter(GlobalCrashHandler);
     DiagLog(L"wmain() entered");
 
     SERVICE_TABLE_ENTRYW ServiceTable[] = {

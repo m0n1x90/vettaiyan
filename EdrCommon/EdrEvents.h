@@ -163,9 +163,15 @@ typedef struct _EDR_FILE_EVENT {
     EDR_EVENT_HEADER Header;
     WCHAR           FilePath[EDR_MAX_PATH];
     WCHAR           NewFilePath[EDR_MAX_PATH];  // For rename operations
+    WCHAR           ProcessImagePath[EDR_MAX_PATH]; // Which executable did this I/O
     LARGE_INTEGER   FileSize;
     ULONG           FileAttributes;
     ULONG           CreateDisposition;  // FILE_CREATED, FILE_OPENED, FILE_OVERWRITTEN, etc.
+    ACCESS_MASK     DesiredAccess;      // What the opener asked for (GENERIC_READ, GENERIC_WRITE, DELETE...)
+    ULONG           ShareAccess;        // Sharing mode (FILE_SHARE_READ, etc.)
+    ULONG           CreateOptions;      // FILE_DELETE_ON_CLOSE, FILE_DIRECTORY_FILE, etc.
+    LARGE_INTEGER   WriteOffset;        // For writes: byte offset into the file
+    ULONG           WriteLength;        // For writes: number of bytes written
 } EDR_FILE_EVENT;
 
 /* Handle/Object operation event */

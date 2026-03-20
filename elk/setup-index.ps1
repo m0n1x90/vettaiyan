@@ -76,24 +76,46 @@ $template = @{
         }
         mappings = @{
             properties = @{
-                host = @{ type = "keyword" }
+                computerName = @{ type = "keyword" }
                 eventType = @{ type = "keyword" }
-                processId = @{ type = "integer" }
-                threadId = @{ type = "integer" }
+                processId = @{ type = "keyword" }
+                threadId = @{ type = "keyword" }
                 sequenceNumber = @{ type = "long" }
                 timestamp = @{
                     type = "date"
                     format = "strict_date_optional_time||epoch_millis"
                 }
-                detail = @{
+                # Process fields
+                parentProcessId = @{ type = "keyword" }
+                sessionId = @{ type = "integer" }
+                imagePath = @{ type = "keyword" }
+                commandLine = @{
                     type = "text"
-                    fields = @{
-                        keyword = @{
-                            type = "keyword"
-                            ignore_above = 2048
-                        }
-                    }
+                    fields = @{ keyword = @{ type = "keyword"; ignore_above = 2048 } }
                 }
+                # Image/DLL fields
+                imageBase = @{ type = "keyword" }
+                imageSize = @{ type = "long" }
+                # Thread fields
+                targetProcessId = @{ type = "keyword" }
+                targetThreadId = @{ type = "keyword" }
+                isRemoteThread = @{ type = "boolean" }
+                # Registry fields
+                keyPath = @{ type = "keyword" }
+                valueName = @{ type = "keyword" }
+                # File fields
+                filePath = @{ type = "keyword" }
+                newFilePath = @{ type = "keyword" }
+                processImagePath = @{ type = "keyword" }
+                fileSize = @{ type = "long" }
+                fileAttributes = @{ type = "integer" }
+                createDisposition = @{ type = "keyword" }
+                desiredAccess = @{ type = "keyword" }
+                shareAccess = @{ type = "keyword" }
+                createOptions = @{ type = "keyword" }
+                writeOffset =  @{ type = "long" }
+                writeLength =  @{ type = "long" }
+                sha256 =@{ type = "keyword" }
             }
         }
     }

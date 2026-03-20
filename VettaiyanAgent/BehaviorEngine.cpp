@@ -63,6 +63,10 @@ static const wchar_t* PERSISTENCE_REGKEYS[] = {
 };
 
 
+/* Forward declaration — defined later, used by CheckCredentialAccess */
+static bool IsKnownSystemProcess(ULONG pid);
+
+
 static bool ContainsInsensitive(const std::wstring& haystack, const wchar_t* needle)
 {
     std::wstring h = haystack;
@@ -275,6 +279,15 @@ static void CheckDownloadCradle(const EDR_PROCESS_EVENT* event)
  * ============================================================ */
 static void CheckCredentialAccess(const EDR_FILE_EVENT* event)
 {
+    /* System processes and core services legitimately access registry
+       hive files during boot and normal operation.  Skip them. */
+    if (IsKnownSystemProcess(event->Header.ProcessId)) return;
+
+    /* Only flag actual opens/reads, not just metadata queries.
+       FileCreate with FILE_OPENED means something is reading the hive. */
+    if (event->Header.EventType != EdrEventFileCreate &&
+        event->Header.EventType != EdrEventFileWrite) return;
+
     std::wstring filePath = event->FilePath;
 
     for (auto& credPath : CREDENTIAL_PATHS) {
@@ -415,6 +428,15 @@ static void CheckSuspiciousFileWrite(const EDR_FILE_EVENT* event)
         return;
     }
 
+    /* FileCreate with disposition FILE_OPENED (1) is just reading/loading
+       an existing file (e.g. normal DLL load), not writing. Only flag
+       actual mutations: FILE_SUPERSEDED (0), FILE_CREATED (2),
+       FILE_OVERWRITTEN (3+). */
+    if (event->Header.EventType == EdrEventFileCreate &&
+        event->CreateDisposition == 1 /* FILE_OPENED */) {
+        return;
+    }
+
     std::wstring filePath = event->FilePath;
 
     /* Executable dropped in Startup folder */
@@ -497,12 +519,47 @@ void AnalyzeImageEvent(const EDR_IMAGE_EVENT* event)
 }
 
 
+/* Helper: check if a PID belongs to a known Windows system binary.
+   Uses the ProcessTracker to resolve the image name. */
+static bool IsKnownSystemProcess(ULONG pid)
+{
+    if (pid <= 4) return true;  /* Idle / System */
+
+    const ProcessNode* node = GetProcessNode(pid);
+    if (!node) return false;
+
+    static const wchar_t* SYSTEM_IMAGES[] = {
+        L"smss.exe", L"csrss.exe", L"wininit.exe", L"services.exe",
+        L"lsass.exe", L"winlogon.exe", L"svchost.exe", L"dwm.exe",
+        L"fontdrvhost.exe", L"lsaiso.exe", L"spoolsv.exe",
+        L"searchindexer.exe", L"sihost.exe", L"taskhostw.exe",
+        L"runtimebroker.exe", L"dllhost.exe", L"conhost.exe",
+        L"msdtc.exe", L"wuauserv.exe", L"trustedinstaller.exe",
+        L"tiworker.exe", L"audiodg.exe", L"wmiprvse.exe",
+        L"explorer.exe", L"ctfmon.exe", L"dashost.exe",
+        L"securityhealthservice.exe", L"sgrmbroker.exe",
+    };
+    for (auto& s : SYSTEM_IMAGES) {
+        if (_wcsicmp(node->ImageName.c_str(), s) == 0) return true;
+    }
+
+    /* Session 0 + parent is System/services → system service */
+    if (node->SessionId == 0 && node->ParentProcessId <= 4) return true;
+
+    return false;
+}
+
+
 void AnalyzeThreadEvent(const EDR_THREAD_EVENT* event)
 {
     if (!event) return;
 
     /* Remote thread injection detection (T1055) */
     if (event->Header.EventType == EdrEventThreadCreate && event->IsRemoteThread) {
+        /* Skip system processes — kernel and core OS routinely create
+           threads in other processes (e.g. csrss, smss, svchost). */
+        if (IsKnownSystemProcess(event->Header.ProcessId)) return;
+
         BehaviorDetection det = {};
         det.RuleName = L"ProcessInjection_RemoteThread";
         det.Description = L"Remote thread created in PID " + std::to_wstring(event->TargetProcessId);
@@ -536,6 +593,8 @@ void AnalyzeHandleEvent(const EDR_HANDLE_EVENT* event)
     if (!event) return;
 
     /* Process hollowing / injection via handle access (T1055) */
+    if (IsKnownSystemProcess(event->Header.ProcessId)) return;
+
     ACCESS_MASK suspiciousMask = PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_CREATE_THREAD;
     if ((event->DesiredAccess & suspiciousMask) == suspiciousMask) {
         /* Process wants write + create thread in another process = injection */

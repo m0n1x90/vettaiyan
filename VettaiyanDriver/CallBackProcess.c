@@ -1,9 +1,11 @@
 /*
  * CallBackProcess.c -- watches every process create and terminate.
  *
+ * Uses PsSetCreateProcessNotifyRoutineEx to get the full
+ * PS_CREATE_NOTIFY_INFO on create, which includes CommandLine.
  * The kernel calls us whenever a process starts or exits. We capture
- * the PID, parent PID, session ID, image path for both the process
- * and its parent, then queue the event for the agent.
+ * the PID, parent PID, session ID, image path, and command line,
+ * then queue the event for the agent.
  *
  * This is foundational telemetry -- the agent uses it to build
  * a process tree and detect things like unusual parent-child
@@ -15,45 +17,59 @@
 
 /* PsGetProcessSessionId may not be declared in all WDK header versions */
 NTKERNELAPI ULONG PsGetProcessSessionId(_In_ PEPROCESS Process);
+NTKERNELAPI HANDLE PsGetProcessInheritedFromUniqueProcessId(_In_ PEPROCESS Process);
 
 /*
  * EdrCreateProcessNotifyRoutine -- fires on every process create/terminate.
  *
- * For creates: we resolve both the new process and its parent image paths.
+ * CreateInfo non-NULL = create. CreateInfo NULL = terminate.
+ * For creates: we get image path from CreateInfo->ImageFileName,
+ *   command line from CreateInfo->CommandLine, and parent PID from
+ *   CreateInfo->ParentProcessId.
  * For terminates: just log that the PID is gone.
  */
 VOID EdrCreateProcessNotifyRoutine(
-    _In_ HANDLE ParentProcessId,
+    _Inout_ PEPROCESS Process,
     _In_ HANDLE ProcessId,
-    _In_ BOOLEAN Create
+    _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo
 ) {
 
     EDR_PROCESS_EVENT event = { 0 };
-    PEPROCESS process = NULL;
-    PUNICODE_STRING processName = NULL;
-    PUNICODE_STRING parentProcessName = NULL;
+    PEPROCESS parentProcess = NULL;
 
-    /* Create or terminate? */
-    event.Header.EventType = Create ? EdrEventProcessCreate : EdrEventProcessTerminate;
+    /* Create or terminate? CreateInfo is non-NULL for creates. */
+    event.Header.EventType = CreateInfo ? EdrEventProcessCreate : EdrEventProcessTerminate;
     KeQuerySystemTimePrecise(&event.Header.Timestamp);
     event.Header.ProcessId = (ULONG)(ULONG_PTR)ProcessId;
     event.Header.ThreadId = (ULONG)(ULONG_PTR)PsGetCurrentThreadId();
     event.Header.EventSize = sizeof(EDR_PROCESS_EVENT);
     event.Header.SequenceNumber = GetNextSequenceNumber();
-    event.ParentProcessId = (ULONG)(ULONG_PTR)ParentProcessId;
 
-    /* Look up the new process -- get its image path, session, and logon ID */
-    if (NT_SUCCESS(PsLookupProcessByProcessId(ProcessId, &process))) {
-        if (NT_SUCCESS(SeLocateProcessImageName(process, &processName)) && processName) {
-            RtlStringCbCopyUnicodeString(event.ImagePath, sizeof(event.ImagePath), processName);
+    if (CreateInfo) {
+        /* ---- Process Create ---- */
+        event.ParentProcessId = (ULONG)(ULONG_PTR)CreateInfo->ParentProcessId;
+
+        /* Image path from CreateInfo (more reliable than SeLocateProcessImageName
+           at this point because the process is still being set up) */
+        if (CreateInfo->ImageFileName) {
+            RtlStringCbCopyUnicodeString(event.ImagePath, sizeof(event.ImagePath),
+                CreateInfo->ImageFileName);
         }
-        event.SessionId = (ULONG)(ULONG_PTR)PsGetProcessSessionId(process);
+
+        /* Command line -- the key field we upgraded to Ex for */
+        if (CreateInfo->CommandLine) {
+            RtlStringCbCopyUnicodeString(event.CommandLine, sizeof(event.CommandLine),
+                CreateInfo->CommandLine);
+        }
+
+        /* Session ID and logon session from the process object */
+        event.SessionId = (ULONG)(ULONG_PTR)PsGetProcessSessionId(Process);
 
         /* Grab the logon session LUID from the process token.
            The agent maps this to a LogonType via LsaGetLogonSessionData:
            type 3 = network (PsExec/WMI), type 10 = RDP, etc. */
         {
-            PACCESS_TOKEN token = PsReferencePrimaryToken(process);
+            PACCESS_TOKEN token = PsReferencePrimaryToken(Process);
             if (token) {
                 LUID authId = { 0 };
                 if (NT_SUCCESS(SeQueryAuthenticationIdToken(token, &authId))) {
@@ -63,15 +79,28 @@ VOID EdrCreateProcessNotifyRoutine(
             }
         }
 
-        ObDereferenceObject(process);
-    }
-
-    /* Look up the parent -- agent uses this to build the process tree */
-    if (NT_SUCCESS(PsLookupProcessByProcessId(ParentProcessId, &process))) {
-        if (NT_SUCCESS(SeLocateProcessImageName(process, &parentProcessName)) && parentProcessName) {
-            RtlStringCbCopyUnicodeString(event.ParentImagePath, sizeof(event.ParentImagePath), parentProcessName);
+        /* Look up the parent -- agent uses this to build the process tree */
+        if (NT_SUCCESS(PsLookupProcessByProcessId(CreateInfo->ParentProcessId, &parentProcess))) {
+            PUNICODE_STRING parentProcessName = NULL;
+            if (NT_SUCCESS(SeLocateProcessImageName(parentProcess, &parentProcessName)) && parentProcessName) {
+                RtlStringCbCopyUnicodeString(event.ParentImagePath, sizeof(event.ParentImagePath),
+                    parentProcessName);
+            }
+            ObDereferenceObject(parentProcess);
         }
-        ObDereferenceObject(process);
+    } else {
+        /* ---- Process Terminate ---- */
+        /* CreateInfo is NULL at termination, but the Process object is
+           still valid so we can pull the interesting fields from it. */
+        PUNICODE_STRING processName = NULL;
+        if (NT_SUCCESS(SeLocateProcessImageName(Process, &processName)) && processName) {
+            RtlStringCbCopyUnicodeString(event.ImagePath, sizeof(event.ImagePath), processName);
+        }
+
+        event.SessionId = (ULONG)(ULONG_PTR)PsGetProcessSessionId(Process);
+
+        /* InheritedFromUniqueProcessId = parent PID stored in EPROCESS */
+        event.ParentProcessId = (ULONG)(ULONG_PTR)PsGetProcessInheritedFromUniqueProcessId(Process);
     }
 
     /* Queue for the agent to pick up */
@@ -79,12 +108,13 @@ VOID EdrCreateProcessNotifyRoutine(
 
 }
 
-/* Register our callback with the kernel */
+/* Register our callback with the kernel.
+   Ex version gives us PS_CREATE_NOTIFY_INFO with CommandLine. */
 NTSTATUS RegisterProcessNotifyRoutine() {
-    return PsSetCreateProcessNotifyRoutine(EdrCreateProcessNotifyRoutine, FALSE);
+    return PsSetCreateProcessNotifyRoutineEx(EdrCreateProcessNotifyRoutine, FALSE);
 }
 
 /* Unregister -- called during driver unload */
 NTSTATUS UnregisterProcessNotifyRoutine() {
-    return PsSetCreateProcessNotifyRoutine(EdrCreateProcessNotifyRoutine, TRUE);
+    return PsSetCreateProcessNotifyRoutineEx(EdrCreateProcessNotifyRoutine, TRUE);
 }

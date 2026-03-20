@@ -42,7 +42,7 @@ void ShutdownTelemetryShipper();
 /* Push a raw event into the transit buffer.
    Called from OnKernelEvent for all event types.
    Thread-safe, non-blocking, drops oldest if buffer full. */
-void ShipEvent(const EDR_EVENT_HEADER* header, const std::wstring& detail);
+void ShipEvent(const EDR_EVENT_HEADER* header, const void* eventData, const char* sha256 = nullptr);
 
 /* Stats for the dashboard */
 struct ShipperStats {

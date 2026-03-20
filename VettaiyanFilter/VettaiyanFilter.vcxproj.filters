@@ -39,12 +39,30 @@
     <ClCompile Include="FsSet.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FsClose.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterCommPort.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FsCommon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FsFilter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DriverHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EdrCommon\EdrEvents.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FilterCommPort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FsCommon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

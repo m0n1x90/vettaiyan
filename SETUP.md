@@ -581,5 +581,7 @@ The UI connects to the agent via named pipes. Verify:
 
 ```bash
 docker run -d --name elastic -p 9200:9200 -e "discovery.type=single-node" -e "xpack.security.enabled=false" elasticsearch:8.12.0
-
+Invoke-RestMethod -Uri "http://192.168.1.8:9200/vettaiyan-events" -Method Delete
+cd D:\vettaiyan\elk
+.\setup-index.ps1
 ```
